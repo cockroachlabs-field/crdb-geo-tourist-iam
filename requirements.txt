@@ -8,3 +8,7 @@ Geohash
 flask-cors
 sqlalchemy<2.0
 sqlalchemy-cockroachdb
+flask-login
+flask-wtf
+flask-sqlalchemy
+

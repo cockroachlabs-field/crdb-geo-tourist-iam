@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>CockroachDB Geo Tourist</title>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="icon" type="image/png" href="/static/crl-32x32.png" sizes="32x32">
+
+  <style>
+    body {
+      padding: 0;
+      margin: 0;
+    }
+    #loginButton {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      padding: 10px;
+      z-index: 400;
+    }
+    .button {
+      background-color: #5400FE;
+      border: none;
+      color: white;
+      padding: 15px 32px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      border-radius: 8px;
+    }
+    div.test
+    {
+      width: 30%;
+      padding: 10px;
+      border: none;
+      border-radius: 15px;
+    }
+</style>
+</head>
+<body>
+
+{% with messages = get_flashed_messages() %}
+{% if messages %}
+<ul>
+  {% for message in messages %}
+  <li>{{ message }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% endwith %}
+
+<div class="test">
+<h1>Sign In</h1>
+<form action="" method="post" novalidate>
+  {{ form.hidden_tag() }}
+  <p>
+  {{ form.username.label }}<br>
+  {{ form.username(size=32) }}
+  {% for error in form.username.errors %}
+  <br><span style="color: red;">{{ error }}</span>
+  {% endfor %}
+  </p>
+  <p>
+  {{ form.password.label }}<br>
+  {{ form.password(size=32) }}
+  {% for error in form.password.errors %}
+  <br><span style="color: red;">{{ error }}</span>
+  {% endfor %}
+  </p>
+  <p>{{ form.remember_me() }} {{ form.remember_me.label }}</p>
+  <p>{{ form.submit() }}</p>
+</form>
+</div>
+
+</body>
+</html>
+
