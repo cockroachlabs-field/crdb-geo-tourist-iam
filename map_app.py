@@ -28,7 +28,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField
 from wtforms.validators import DataRequired
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import LoginManager, UserMixin, current_user, login_user
+from flask_login import LoginManager, UserMixin, current_user, login_user, login_required, logout_user
 
 db_url = os.getenv("DB_URL")
 if db_url is None:
@@ -227,6 +227,12 @@ def login():
     login_user(user, remember=form.remember_me.data)
     return redirect(url_for("index"))
   return render_template("login.html", form=form)
+
+@app.route("/logout")
+@login_required
+def logout():
+  logout_user()
+  return redirect(url_for("index"))
 
 if __name__ == "__main__":
   port = int(os.getenv("FLASK_PORT", 18080))

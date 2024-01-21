@@ -45,7 +45,13 @@
 <body onload="setInitialView();">
 
   <div id="mapid"></div>
-  <button id="loginButton" class="button" onClick="location.assign('/login');">Log In / Sign Up</button>
+  <button id="loginButton" class="button"
+  {% if current_user.is_authenticated %}
+  onClick="location.assign('/logout');">Logout Tourist <em>{{ current_user.username }}</em>
+  {% else %}
+  onClick="location.assign('/login');">Log In / Sign Up
+  {% endif %}
+  </button>
 
 <script>
   // Type of amenity (pub, cafe, bar, restaurant, ...)
