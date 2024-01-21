@@ -30,12 +30,15 @@
       font-size: 16px;
       border-radius: 8px;
     }
-    div.test
-    {
-      width: 30%;
-      padding: 10px;
-      border: none;
-      border-radius: 15px;
+    #left {
+      width: 50%;
+      float: left;
+    }
+    #right {
+      margin-left: 50%;
+    }
+    .clear {
+      clear: both;
     }
 </style>
 </head>
@@ -51,26 +54,62 @@
 {% endif %}
 {% endwith %}
 
-<div class="test">
-<h1>Sign In</h1>
-<form action="" method="post" novalidate>
-  {{ form.hidden_tag() }}
+<div id="left">
+<h1>Log In</h1>
+<form action="{{ url_for('login') }}" method="post" novalidate>
+  {{ login_form.hidden_tag() }}
   <p>
-  {{ form.username.label }}<br>
-  {{ form.username(size=32) }}
-  {% for error in form.username.errors %}
+  {{ login_form.username.label }}<br>
+  {{ login_form.username(size=32) }}
+  {% for error in login_form.username.errors %}
   <br><span style="color: red;">{{ error }}</span>
   {% endfor %}
   </p>
   <p>
-  {{ form.password.label }}<br>
-  {{ form.password(size=32) }}
-  {% for error in form.password.errors %}
+  {{ login_form.password.label }}<br>
+  {{ login_form.password(size=32) }}
+  {% for error in login_form.password.errors %}
   <br><span style="color: red;">{{ error }}</span>
   {% endfor %}
   </p>
-  <p>{{ form.remember_me() }} {{ form.remember_me.label }}</p>
-  <p>{{ form.submit() }}</p>
+  <p>{{ login_form.remember_me() }} {{ login_form.remember_me.label }}</p>
+  <p>{{ login_form.submit() }}</p>
+</form>
+</div>
+
+<div id="right">
+<h1>Register</h1>
+<form action="{{ url_for('signup') }}" method="post">
+{{ signup_form.hidden_tag() }}
+<p>
+  {{ signup_form.username.label }}<br>
+  {{ signup_form.username(size=32) }}<br>
+  {% for error in signup_form.username.errors %}
+  <span style="color: red;">[{{ error }}]</span>
+  {% endfor %}
+</p>
+<p>
+  {{ signup_form.email.label }}<br>
+  {{ signup_form.email(size=64) }}<br>
+  {% for error in signup_form.email.errors %}
+  <span style="color: red;">[{{ error }}]</span>
+  {% endfor %}
+</p>
+<p>
+  {{ signup_form.password.label }}<br>
+  {{ signup_form.password(size=32) }}<br>
+  {% for error in signup_form.password.errors %}
+  <span style="color: red;">[{{ error }}]</span>
+  {% endfor %}
+</p>
+<p>
+  {{ signup_form.password2.label }}<br>
+  {{ signup_form.password2(size=32) }}<br>
+  {% for error in signup_form.password2.errors %}
+  <span style="color: red;">[{{ error }}]</span>
+  {% endfor %}
+</p>
+<p>{{ signup_form.submit() }}</p>
 </form>
 </div>
 

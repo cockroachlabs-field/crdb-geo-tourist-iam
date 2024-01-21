@@ -123,7 +123,7 @@ class SignUpForm(FlaskForm):
   email = StringField("Email", validators=[DataRequired(), Email()])
   password = PasswordField("Password", validators=[DataRequired()])
   password2 = PasswordField("Repeat Password", validators=[DataRequired(), EqualTo("password")])
-  submit = SubmitField("Register")
+  submit = SubmitField("Sign Up")
 
   def validate_username(self, username):
     user = db.session.scalar(sa.select(Tourist).where(Tourist.username == username.data))
@@ -139,7 +139,7 @@ class LoginForm(FlaskForm):
   username = StringField("Username", validators=[DataRequired()])
   password = PasswordField("Password", validators=[DataRequired()])
   remember_me = BooleanField("Remember Me")
-  submit = SubmitField("Sign In")
+  submit = SubmitField("Log In")
 
 # Create tables based on objects in models.py
 with app.app_context():
@@ -236,15 +236,16 @@ def index():
 def login():
   if current_user.is_authenticated:
     return redirect(url_for("index"))
-  form = LoginForm()
-  if form.validate_on_submit():
-    user = db.session.scalar(sa.select(Tourist).where(Tourist.username == form.username.data))
-    if user is None or not user.check_password(form.password.data):
+  signup_form = SignUpForm()
+  login_form = LoginForm()
+  if login_form.validate_on_submit():
+    user = db.session.scalar(sa.select(Tourist).where(Tourist.username == login_form.username.data))
+    if user is None or not user.check_password(login_form.password.data):
       flash("Invalid username or password")
       return redirect(url_for("login"))
-    login_user(user, remember=form.remember_me.data)
+    login_user(user, remember=login_form.remember_me.data)
     return redirect(url_for("index"))
-  return render_template("login.html", form=form)
+  return render_template("login.html", signup_form=signup_form, login_form=login_form)
 
 # Default login view for pages requiring user to be logged in
 login_manager.login_view = "login"
@@ -254,6 +255,22 @@ login_manager.login_view = "login"
 def logout():
   logout_user()
   return redirect(url_for("index"))
+
+# FIXME: how can I have a login form and a signup form on the same HTML template?
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+  if current_user.is_authenticated:
+    return redirect(url_for("index"))
+  signup_form = SignUpForm()
+  login_form = LoginForm()
+  if signup_form.validate_on_submit():
+    user = Tourist(username=signup_form.username.data, email=signup_form.email.data)
+    user.set_password(signup_form.password.data)
+    db.session.add(user)
+    db.session.commit()
+    flash("Congratulations, you are now a registered user!")
+    return redirect(url_for("login"))
+  return render_template("login.html", signup_form=signup_form, login_form=login_form)
 
 if __name__ == "__main__":
   port = int(os.getenv("FLASK_PORT", 18080))
