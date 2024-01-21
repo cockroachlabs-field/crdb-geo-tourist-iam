@@ -27,6 +27,8 @@ from flask import Flask, request, Response, render_template, flash, redirect, ur
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField
 from wtforms.validators import DataRequired
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import LoginManager, UserMixin, current_user, login_user
 
 db_url = os.getenv("DB_URL")
 if db_url is None:
@@ -85,6 +87,7 @@ def run_stmt(engine, stmt, max_retries=3):
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "my_default_secret_key")
 app.config["SQLALCHEMY_DATABASE_URI"] = db_url
+login = LoginManager(app)
 
 # SQLAlchemy (https://flask-sqlalchemy.palletsprojects.com/en/3.1.x/quickstart/)
 class Base(DeclarativeBase):
@@ -99,7 +102,7 @@ class LoginForm(FlaskForm):
   remember_me = BooleanField("Remember Me")
   submit = SubmitField("Sign In")
 
-class Tourist(db.Model):
+class Tourist(UserMixin, db.Model):
   id: so.Mapped[uuid.UUID] = so.mapped_column(
     sa.types.Uuid,
     primary_key=True,
@@ -110,11 +113,21 @@ class Tourist(db.Model):
   password_hash: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
 
   def __repr__(self):
-      return "<Tourist {}>".format(self.username)
+    return "[Tourist: username = {}]".format(self.username)
+
+  def set_password(self, password):
+    self.password_hash = generate_password_hash(password)
+
+  def check_password(self, password):
+    return check_password_hash(self.password_hash, password)
 
 # Create tables based on objects in models.py
 with app.app_context():
   db.create_all()
+
+@login.user_loader
+def load_user(id):
+    return db.session.get(Tourist, id)
 
 # Return a JSON list of the sites where the tourist may be located
 @app.route("/sites", methods = ["GET"])
@@ -196,14 +209,20 @@ def features():
 # Routes
 @app.route("/")
 def index():
+  logging.warning("current_user: {}".format(current_user))
   return render_template("index.html")
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
+  if current_user.is_authenticated:
+    return redirect(url_for("index"))
   form = LoginForm()
   if form.validate_on_submit():
-    flash("Login requested for user {}, remember_me={}".format(
-      form.username.data, form.remember_me.data))
+    user = db.session.scalar(sa.select(Tourist).where(Tourist.username == form.username.data))
+    if user is None or not user.check_password(form.password.data):
+      flash("Invalid username or password")
+      return redirect(url_for("login"))
+    login_user(user, remember=form.remember_me.data)
     return redirect(url_for("index"))
   return render_template("login.html", form=form)
 
