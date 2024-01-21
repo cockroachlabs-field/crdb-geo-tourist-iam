@@ -11,4 +11,5 @@ sqlalchemy-cockroachdb
 flask-login
 flask-wtf
 flask-sqlalchemy
+email-validator
 

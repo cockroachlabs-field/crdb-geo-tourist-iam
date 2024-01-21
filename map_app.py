@@ -26,7 +26,7 @@ from sqlalchemy.orm import DeclarativeBase
 from flask import Flask, request, Response, render_template, flash, redirect, url_for
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField
-from wtforms.validators import DataRequired
+from wtforms.validators import DataRequired, ValidationError, Email, EqualTo
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, current_user, login_user, login_required, logout_user
 
@@ -89,7 +89,8 @@ app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "my_default_secret_key")
 app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 # For next line: https://flask-sqlalchemy.palletsprojects.com/en/2.x/api/
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = { "pool_size": 10, "pool_pre_ping": True }
-login = LoginManager(app)
+login_manager = LoginManager(app)
+login_manager.init_app(app)
 
 # SQLAlchemy (https://flask-sqlalchemy.palletsprojects.com/en/3.1.x/quickstart/)
 class Base(DeclarativeBase):
@@ -98,12 +99,6 @@ db = SQLAlchemy(model_class=Base)
 db.init_app(app)
 
 # Models / Classes
-class LoginForm(FlaskForm):
-  username = StringField("Username", validators=[DataRequired()])
-  password = PasswordField("Password", validators=[DataRequired()])
-  remember_me = BooleanField("Remember Me")
-  submit = SubmitField("Sign In")
-
 class Tourist(UserMixin, db.Model):
   id: so.Mapped[uuid.UUID] = so.mapped_column(
     sa.types.Uuid,
@@ -123,11 +118,34 @@ class Tourist(UserMixin, db.Model):
   def check_password(self, password):
     return check_password_hash(self.password_hash, password)
 
+class SignUpForm(FlaskForm):
+  username = StringField("Username", validators=[DataRequired()])
+  email = StringField("Email", validators=[DataRequired(), Email()])
+  password = PasswordField("Password", validators=[DataRequired()])
+  password2 = PasswordField("Repeat Password", validators=[DataRequired(), EqualTo("password")])
+  submit = SubmitField("Register")
+
+  def validate_username(self, username):
+    user = db.session.scalar(sa.select(Tourist).where(Tourist.username == username.data))
+    if user is not None:
+      raise ValidationError("Please use a different username.")
+
+  def validate_email(self, email):
+    user = db.session.scalar(sa.select(Tourist).where(Tourist.email == email.data))
+    if user is not None:
+      raise ValidationError("Please use a different email address.")
+
+class LoginForm(FlaskForm):
+  username = StringField("Username", validators=[DataRequired()])
+  password = PasswordField("Password", validators=[DataRequired()])
+  remember_me = BooleanField("Remember Me")
+  submit = SubmitField("Sign In")
+
 # Create tables based on objects in models.py
 with app.app_context():
   db.create_all()
 
-@login.user_loader
+@login_manager.user_loader
 def load_user(id):
     return db.session.get(Tourist, id)
 
@@ -227,6 +245,9 @@ def login():
     login_user(user, remember=form.remember_me.data)
     return redirect(url_for("index"))
   return render_template("login.html", form=form)
+
+# Default login view for pages requiring user to be logged in
+login_manager.login_view = "login"
 
 @app.route("/logout")
 @login_required
