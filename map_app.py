@@ -185,9 +185,9 @@ def features():
       ST_Distance(ST_MakePoint(:lon_val, :lat_val)::GEOGRAPHY, ref_point)::NUMERIC(9, 2) dist_m,
       ST_Y(ref_point::GEOMETRY) lat,
       ST_X(ref_point::GEOMETRY) lon,
-      date_time,
-      key_value,
-      rating
+      rating,
+      geohash4,
+      id
     FROM osm
     WHERE
   """
@@ -214,9 +214,11 @@ def features():
   else:
     stmt = text(sql).bindparams(lon_val=lon, lat_val=lat, amenity="amenity=" + amenity)
   for row in run_stmt(eng_read, stmt):
-    (name, dist_m, lat, lon, dt, kv, rating) = row
+    (name, dist_m, lat, lon, rating, geohash4, id) = row
     d = {}
     d["name"] = name
+    if current_user.is_authenticated: # Logged in => editable
+      d["name"] = '<a href="/amenity/edit/{}/{}/{}">{}</a>'.format(geohash4, amenity, id, name)
     d["amenity"] = amenity
     d["dist_m"] = str(dist_m)
     d["lat"] = lat
