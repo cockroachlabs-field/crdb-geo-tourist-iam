@@ -6,30 +6,9 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <link rel="icon" type="image/png" href="/static/crl-32x32.png" sizes="32x32">
-
+  <link rel="stylesheet" href="/static/bootstrap.min.css">
+  <script src="/static/bootstrap.bundle.min.js"></script>
   <style>
-    body {
-      padding: 0;
-      margin: 0;
-    }
-    #loginButton {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      padding: 10px;
-      z-index: 400;
-    }
-    .button {
-      background-color: #5400FE;
-      border: none;
-      color: white;
-      padding: 15px 32px;
-      text-align: center;
-      text-decoration: none;
-      display: inline-block;
-      font-size: 16px;
-      border-radius: 8px;
-    }
     #left {
       width: 50%;
       float: left;
@@ -90,7 +69,7 @@
 </p>
 <p>
   {{ signup_form.email.label }}<br>
-  {{ signup_form.email(size=64) }}<br>
+  {{ signup_form.email(size=48) }}<br>
   {% for error in signup_form.email.errors %}
   <span style="color: red;">[{{ error }}]</span>
   {% endfor %}

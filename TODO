@@ -1,0 +1,9 @@
+TODO Items
+
+* Style the Sign Up / Log In page
+* Add an editing view for the /amenity/edit link
+* Partition the data geographically by substring of geohash
+* Consider making tourist table global
+* Add data for Austin, TX
+
+
