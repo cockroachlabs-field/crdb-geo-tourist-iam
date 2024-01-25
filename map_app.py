@@ -258,7 +258,6 @@ def logout():
   logout_user()
   return redirect(url_for("index"))
 
-# FIXME: how can I have a login form and a signup form on the same HTML template?
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
   if current_user.is_authenticated:
@@ -273,6 +272,10 @@ def signup():
     flash("Congratulations, you are now a registered user!")
     return redirect(url_for("login"))
   return render_template("login.html", signup_form=signup_form, login_form=login_form)
+
+@app.route("/sandbox")
+def sandbox():
+  return render_template("sandbox.html")
 
 if __name__ == "__main__":
   port = int(os.getenv("FLASK_PORT", 18080))

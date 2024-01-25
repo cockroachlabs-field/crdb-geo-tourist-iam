@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>load demo</title>
+  <link rel="icon" type="image/png" href="/static/crl-32x32.png" sizes="32x32">
+  <style>
+  body {
+    font-size: 12px;
+    font-family: Arial;
+  }
+  .overlay {
+    width: 80%;
+    margin: auto;
+    color: #555;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    transform: translateY(+5%);
+    padding: 10%;
+  }
+  </style>
+  <link rel="stylesheet" href="/static/bootstrap.min.css">
+  <script src="/static/bootstrap.bundle.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+  <script>
+  $(function() {
+    $(".but").on("click",function(e) {
+      e.preventDefault();
+      $(".overlay").hide();
+      $(".overlay").load('/login');
+      $(".overlay").css("z-index", 2);
+      $(".overlay").show();
+    });
+  });
+</script>
+</head>
+<body>
+
+<button class="but">Click me</button>
+<div id="main" class="overlay">Default content here ...</div>
+
+</body>
+</html>
+
