@@ -1,4 +1,4 @@
-# CockroachDB Geo Tourist
+# CockroachDB Geo Tourist ![](./Now_With_IAM.jpg)
 
 ## Use the spatial features in CockroachDB to find pubs, restaurants, cafes, etc.
 
