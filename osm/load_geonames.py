@@ -106,7 +106,11 @@ for row in tsv:
     if len(row[i]) == 0:
       row[i] = None
 
-  geohash = Geohash.encode(float(row[7]), float(row[6]))
+  try:
+    geohash = Geohash.encode(float(row[7]), float(row[6]))
+  except Exception as e:
+    print(e)
+    continue
 
   row_map = {
     "name": row[0],
