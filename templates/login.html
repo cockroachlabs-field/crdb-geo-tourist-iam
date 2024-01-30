@@ -1,97 +1,16 @@
-<!DOCTYPE html>
-<html>
-<head>
-	<title>CockroachDB Geo Tourist</title>
-	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <link rel="icon" type="image/png" href="/static/crl-32x32.png" sizes="32x32">
-  <link rel="stylesheet" href="/static/bootstrap.min.css">
-  <script src="/static/bootstrap.bundle.min.js"></script>
-  <style>
-    #left {
-      width: 50%;
-      float: left;
-    }
-    #right {
-      margin-left: 50%;
-    }
-    .clear {
-      clear: both;
-    }
-</style>
-</head>
-<body>
-
-{% with messages = get_flashed_messages() %}
-{% if messages %}
-<ul>
-  {% for message in messages %}
-  <li>{{ message }}</li>
-  {% endfor %}
-</ul>
-{% endif %}
-{% endwith %}
+{% extends "base.html" %}
+{% import "bootstrap_wtf.html" as wtf %}
+{% block content %}
 
 <div id="left">
 <h1>Log In</h1>
-<form action="{{ url_for('login') }}" method="post" novalidate>
-  {{ login_form.hidden_tag() }}
-  <p>
-  {{ login_form.username.label }}<br>
-  {{ login_form.username(size=32) }}
-  {% for error in login_form.username.errors %}
-  <br><span style="color: red;">{{ error }}</span>
-  {% endfor %}
-  </p>
-  <p>
-  {{ login_form.password.label }}<br>
-  {{ login_form.password(size=32) }}
-  {% for error in login_form.password.errors %}
-  <br><span style="color: red;">{{ error }}</span>
-  {% endfor %}
-  </p>
-  <p>{{ login_form.remember_me() }} {{ login_form.remember_me.label }}</p>
-  <p>{{ login_form.submit() }}</p>
-</form>
+{{ wtf.quick_form(login_form, action="/login") }}
 </div>
 
 <div id="right">
-<h1>Register</h1>
-<form action="{{ url_for('signup') }}" method="post">
-{{ signup_form.hidden_tag() }}
-<p>
-  {{ signup_form.username.label }}<br>
-  {{ signup_form.username(size=32) }}<br>
-  {% for error in signup_form.username.errors %}
-  <span style="color: red;">[{{ error }}]</span>
-  {% endfor %}
-</p>
-<p>
-  {{ signup_form.email.label }}<br>
-  {{ signup_form.email(size=48) }}<br>
-  {% for error in signup_form.email.errors %}
-  <span style="color: red;">[{{ error }}]</span>
-  {% endfor %}
-</p>
-<p>
-  {{ signup_form.password.label }}<br>
-  {{ signup_form.password(size=32) }}<br>
-  {% for error in signup_form.password.errors %}
-  <span style="color: red;">[{{ error }}]</span>
-  {% endfor %}
-</p>
-<p>
-  {{ signup_form.password2.label }}<br>
-  {{ signup_form.password2(size=32) }}<br>
-  {% for error in signup_form.password2.errors %}
-  <span style="color: red;">[{{ error }}]</span>
-  {% endfor %}
-</p>
-<p>{{ signup_form.submit() }}</p>
-</form>
+<h1>Sign Up</h1>
+{{ wtf.quick_form(signup_form, action="/signup") }}
 </div>
 
-</body>
-</html>
+{% endblock %}
 
