@@ -3,7 +3,7 @@
 import psycopg2
 import psycopg2.errorcodes
 import sqlalchemy
-from sqlalchemy import create_engine, insert
+from sqlalchemy import create_engine, insert, text
 from sqlalchemy import Table, MetaData
 import time
 import sys, os
@@ -52,6 +52,7 @@ sites.append({"name": "Trastevere", "lat": 41.886071, "lon": 12.467422})
 sites.append({"name": "Prado Museum", "lat": 40.41367, "lon": -3.69185})
 sites.append({"name": "Mercado Antón Martín", "lat": 40.41170, "lon": -3.69850})
 sites.append({"name": "Kyiv", "lat": 50.4474203, "lon": 30.5265874})
+sites.append({"name": "Austin", "lat": 30.260721, "lon": -97.747101})
 
 max_retries = int(os.getenv("MAX_RETRIES", "3"))
 logging.info("MAX_RETRIES: {}".format(max_retries))
@@ -108,12 +109,12 @@ def setup_db():
     );
     """
     logging.info("Creating osm table")
-    conn.execute(sql)
+    conn.execute(text(sql))
 
     # Create the spatial index
     sql = "CREATE INDEX IF NOT EXISTS osm_geo_idx ON osm USING GIST(ref_point);"
     logging.info("Creating index on ref_point")
-    conn.execute(sql)
+    conn.execute(text(sql))
 
     # Table of positions for the user
     sql = """
@@ -129,13 +130,14 @@ def setup_db():
     );
     """
     logging.info("Creating tourist_locations table")
-    conn.execute(sql)
+    conn.execute(text(sql))
 
     # Populate that with some potential tourist locations
-    sql = "INSERT INTO tourist_locations (name, lat, lon) VALUES (%s, %s, %s);"
+    sql = "INSERT INTO tourist_locations (name, lat, lon) VALUES (:name, :lat, :lon);"
     logging.info("Populating tourist_locations table")
     for s in sites:
-      conn.execute(sql, (s["name"], s["lat"], s["lon"]))
+      stmt = text(sql).bindparams(name=s["name"], lat=s["lat"], lon=s["lon"])
+      conn.execute(stmt)
 
 rows = []
 llre = re.compile(r"^-?\d+\.\d+$")
