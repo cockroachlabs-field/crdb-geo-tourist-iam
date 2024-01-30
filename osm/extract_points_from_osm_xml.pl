@@ -1,11 +1,22 @@
 #!/usr/bin/env perl
 
+# This part installs the Geo::Hash module locally and adds its location to the @INC search path
 BEGIN {
-  push @INC, "/Library/Perl/5.18";
+  my $hash_url = "https://metacpan.org/release/ANDYA/Geo-Hash-0.02/raw/lib/Geo/Hash.pm?download=1";
+  (my $dir = $0) =~ s~/[^/]+$~~;
+  my $geo = "$dir/Geo";
+  if (not -d "$geo") {
+    mkdir($geo) or die $!;
+  }
+  my $pm = "$geo/Hash.pm";
+  if (not -f $pm) {
+    system("curl -s -o $pm $hash_url") and die $!;
+  }
+  push @INC, $dir;
 }
 
 use strict;
-use Geo::Hash;
+use Geo::Hash; # https://metacpan.org/release/ANDYA/Geo-Hash-0.02/raw/lib/Geo/Hash.pm?download=1
  
 my $num_to_find = 1_000_000_000;
 
