@@ -1,55 +1,79 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3 -u
 
 """
- Ratings are from TripAdvisor, provided by Bing
+  This uses the Brave search API:
+  https://api.search.brave.com/app/documentation/web-search/get-started
 
- https://www.crummy.com/software/BeautifulSoup/bs4/doc/
+  The API requires you sign up and obtain an API key (see BRAVE_API_KEY, below).
 
- $ pip3 install beautifulsoup4
- $ pip3 install requests
-
- $Id: get_ratings.py,v 1.2 2022/09/12 00:11:35 mgoddard Exp mgoddard $
+  Example of using the API via a Curl client:
+  curl -s --compressed "https://api.search.brave.com/res/v1/web/search?q=$query" \
+    -H "Accept: application/json" \
+    -H "Accept-Encoding: gzip" \
+    -H "X-Subscription-Token: $( cat ./Brave_Search_API_Key.txt )"
 
 """
 
+T_SLEEP_MS = 100 # Avoid rate limiting from Brave search API
+MAX_RETRIES = 3
 N_COLS = 8
 
-from bs4 import BeautifulSoup
+import re, sys, os, time, json
 import urllib.parse
-import requests
-import re
-import sys
 import fileinput
 import datetime
 import html
+import requests
 
-rating_re = re.compile(r"Star Rating: (\d(.\d)?) out of 5.")
 addr_pat = re.compile(r"^addr:(?:city|postcode|street)=(.+)$")
+rate_pat = re.compile(r'"ratingValue": +(\d\.\d)')
+
+api_key = os.getenv("BRAVE_API_KEY")
+if api_key is None:
+  print("Environment variable BRAVE_API_KEY must be set. Quitting.")
+  sys.exit(1)
+
+# Save all the JSON data here for future use (it costs a bit of $).
+out = open("brave_api.ndjson", 'a')
+
+def eprint(*args, **kwargs):
+  print(*args, file=sys.stderr, **kwargs)
 
 # Given an array of query terms, return the FLOAT value of its rating (1 - 5).
 def get_rating(query_terms):
   q = ' '.join(query_terms)
   rv = None
-  # FIXME: This doesn't properly deal with "Арома Кава Kyiv", for example
   q = urllib.parse.quote_plus(q)
-  hdr = {
-      "User-Agent": "Mozilla/5.0 (Android 4.4; Mobile; rv:41.0) Gecko/41.0 Firefox/41.0"
+  hdrs = {
+    "Accept": "application/json"
+    , "Accept-Encoding": "gzip"
+    , "X-Subscription-Token": api_key
   }
-  url = "https://www.bing.com/search?q="
-  r = requests.get(url + q, headers=hdr)
-  #print(r.text)
+  url = "https://api.search.brave.com/res/v1/web/search?q={}".format(q)
+  # See: https://requests.readthedocs.io/en/latest/user/advanced/,
+  # https://stackoverflow.com/questions/16511337/correct-way-to-try-except-using-python-requests-module
+  r = None
+  for x in range(0, MAX_RETRIES):
+    try:
+      r = requests.get(url, headers=hdrs, timeout=(0.93, 2.71))
+      break
+    except requests.exceptions.Timeout:
+      pass
+  if r is None:
+    eprint("URL: {} returned None".format(url))
+    return rv
+  obj = r.json()
+  out.write(json.dumps(obj) + '\n')
   """
-  Bing results:
-  <span class="csrc sc_rc1" role="img" aria-label="Star Rating: 4.5 out of 5.">
+  The "ratingValue" field occurs at various places:
+    $.web.results.0.location.rating.ratingValue
+    $.web.results.9.review.rating.ratingValue
+    rv = obj["web"]["results"][0]["location"]["rating"]["ratingValue"]
+    ... so just go with a regular expression:
   """
-  bs = BeautifulSoup(r.text, features="html.parser")
-  ratings = bs.findAll("span", {"class": "csrc sc_rc1"})
-  if ratings is not None and len(ratings) > 0:
-    rating = ratings[0]['aria-label'] # Star Rating: 4.5 out of 5.
-    #print(rating)
-    mat = rating_re.match(rating)
-    if mat is not None:
-      rv = mat.group(1)
+  mat = rate_pat.search(json.dumps(obj))
+  if mat is not None:
+    rv = mat.group(1)
   return rv
 
 for line in fileinput.input():
@@ -76,4 +100,7 @@ for line in fileinput.input():
     a.append("")
     a.append("")
   print('<'.join(a))
+  time.sleep(T_SLEEP_MS/1000)
+
+out.close()
 
