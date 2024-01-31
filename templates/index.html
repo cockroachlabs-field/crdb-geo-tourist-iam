@@ -29,7 +29,8 @@
       z-index: 400;
     }
     .button {
-      background-color: #6933FF;
+      /* background-color: #6933FF; */
+      background-color: #0D6EFD;
       border: none;
       color: white;
       padding: 15px 32px;
@@ -47,7 +48,7 @@
   <div id="mapid"></div>
   <button id="loginButton" class="button"
   {% if current_user.is_authenticated %}
-  onClick="location.assign('/logout');">Logout Tourist <em>{{ current_user.username }}</em>
+  onClick="location.assign('/logout');">Logout <em>{{ current_user.username }}</em>
   {% else %}
   onClick="location.assign('/login');">Log In / Sign Up
   {% endif %}
