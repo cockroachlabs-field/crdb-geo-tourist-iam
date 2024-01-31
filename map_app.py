@@ -234,6 +234,25 @@ def index():
   logging.warning("current_user: {}".format(current_user))
   return render_template("index.html")
 
+# Pre-populate the form with values in the HTTP request:
+# https://stackoverflow.com/questions/35892144/pre-populate-an-edit-form-with-wtforms-and-flask
+@app.route("/amenity/edit", methods=["POST"])
+@app.route("/amenity/edit/<geohash4>/<amenity>/<id>", methods=["GET"])
+def edit(geohash4, amenity, id):
+  if not current_user.is_authenticated:
+    return redirect(url_for("login"))
+  print("geohash4 = '{}' AND amenity = '{}' AND id = {}".format(geohash4, amenity, id))
+  sql = """
+  SELECT name, lat, lon, rating, rating_ts::STRING
+  FROM osm
+  WHERE geohash4 = :geohash4 AND amenity = :amenity AND id = :id;
+  """
+  stmt = text(sql).bindparams(geohash4=geohash4, amenity=amenity, id=id)
+  rows = run_stmt(eng_write, stmt)
+  print("geohash4 = '{}' AND amenity = '{}' AND id = {}".format(geohash4, amenity, id))
+  print(rows)
+  return redirect(url_for("index"))
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
   if current_user.is_authenticated:
