@@ -238,7 +238,6 @@ def index():
 def login():
   if current_user.is_authenticated:
     return redirect(url_for("index"))
-  signup_form = SignUpForm()
   login_form = LoginForm()
   if login_form.validate_on_submit():
     user = db.session.scalar(sa.select(Tourist).where(Tourist.username == login_form.username.data))
@@ -247,7 +246,7 @@ def login():
       return redirect(url_for("login"))
     login_user(user, remember=login_form.remember_me.data)
     return redirect(url_for("index"))
-  return render_template("login.html", signup_form=signup_form, login_form=login_form)
+  return render_template("login.html", login_form=login_form)
 
 # Default login view for pages requiring user to be logged in
 login_manager.login_view = "login"
@@ -263,7 +262,6 @@ def signup():
   if current_user.is_authenticated:
     return redirect(url_for("index"))
   signup_form = SignUpForm()
-  login_form = LoginForm()
   if signup_form.validate_on_submit():
     user = Tourist(username=signup_form.username.data, email=signup_form.email.data)
     user.set_password(signup_form.password.data)
@@ -271,7 +269,7 @@ def signup():
     db.session.commit()
     flash("Congratulations, you are now a registered user!")
     return redirect(url_for("login"))
-  return render_template("login.html", signup_form=signup_form, login_form=login_form)
+  return render_template("signup.html", signup_form=signup_form)
 
 @app.route("/sandbox")
 def sandbox():
