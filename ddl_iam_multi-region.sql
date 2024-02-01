@@ -31,15 +31,15 @@ CREATE TABLE public.osm
   INVERTED INDEX osm_geo_idx (ref_point)
 );
 
-ALTER TABLE public.osm SET LOCALITY REGIONAL BY ROW;
-
-ALTER TABLE public.osm ADD COLUMN region crdb_internal_region AS
+ALTER TABLE public.osm ADD COLUMN crdb_region crdb_internal_region NOT NULL AS
 (
   CASE
     WHEN SUBSTRING(geohash4 FROM 1 FOR 1) IN ('9') THEN 'gcp-us-central1'
     WHEN SUBSTRING(geohash4 FROM 1 FOR 1) IN ('u', 'g', 'e', 's') THEN 'gcp-europe-west1'
   END
 ) STORED;
+
+ALTER TABLE public.osm SET LOCALITY REGIONAL BY ROW;
 
 /* Global */
 CREATE TABLE public.tourist
