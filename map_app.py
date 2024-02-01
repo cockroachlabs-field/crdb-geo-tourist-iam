@@ -25,7 +25,7 @@ from sqlalchemy.orm import DeclarativeBase
 # The Flask and related imports
 from flask import Flask, request, Response, render_template, flash, redirect, url_for
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField, SubmitField
+from wtforms import StringField, PasswordField, BooleanField, SubmitField, HiddenField
 from wtforms.validators import DataRequired, ValidationError, Email, EqualTo
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, current_user, login_user, login_required, logout_user
@@ -141,6 +141,16 @@ class LoginForm(FlaskForm):
   remember_me = BooleanField("Remember Me")
   submit = SubmitField("Log In")
 
+class AmenityForm(FlaskForm):
+  name = StringField("Name", validators=[DataRequired()])
+  lat = StringField("Lat", render_kw={'readonly': True})
+  lon = StringField("Lon", render_kw={'readonly': True})
+  rating = StringField("Rating")
+  amenity = StringField("Amenity", render_kw={'readonly': True})
+  geohash4 = HiddenField("geohash4")
+  id = HiddenField("id")
+  submit = SubmitField("Save Changes")
+
 # Create tables based on objects in models.py
 with app.app_context():
   db.create_all()
@@ -234,24 +244,43 @@ def index():
   logging.warning("current_user: {}".format(current_user))
   return render_template("index.html")
 
-# Pre-populate the form with values in the HTTP request:
-# https://stackoverflow.com/questions/35892144/pre-populate-an-edit-form-with-wtforms-and-flask
+# Handle the case when the user submits the form
 @app.route("/amenity/edit", methods=["POST"])
-@app.route("/amenity/edit/<geohash4>/<amenity>/<id>", methods=["GET"])
-def edit(geohash4, amenity, id):
+def edit_post():
+  # This would do an UPDATE, but it would need the geohash4, amenity, and id PK values
   if not current_user.is_authenticated:
     return redirect(url_for("login"))
-  print("geohash4 = '{}' AND amenity = '{}' AND id = {}".format(geohash4, amenity, id))
+  form = AmenityForm()
+  if form.validate_on_submit():
+    print("Got an update for '{}' -- rating: {}".format(form.name.data, form.rating.data))
+    return render_template("amenity_edit.html", amenity_form=form)
+
+# Handle the HTTP GET from the <a href...> link
+# Pre-populate the form based on values in the HTTP request:
+# https://stackoverflow.com/questions/35892144/pre-populate-an-edit-form-with-wtforms-and-flask
+@app.route("/amenity/edit/<geohash4>/<amenity>/<id>", methods=["GET"])
+def edit_get(geohash4, amenity, id):
+  if not current_user.is_authenticated:
+    return redirect(url_for("login"))
   sql = """
-  SELECT name, lat, lon, rating, rating_ts::STRING
+  SELECT name, lat, lon, rating
   FROM osm
   WHERE geohash4 = :geohash4 AND amenity = :amenity AND id = :id;
   """
   stmt = text(sql).bindparams(geohash4=geohash4, amenity=amenity, id=id)
-  rows = run_stmt(eng_write, stmt)
+  row = run_stmt(eng_write, stmt)
+  (name, lat, lon, rating) = row[0]
   print("geohash4 = '{}' AND amenity = '{}' AND id = {}".format(geohash4, amenity, id))
-  print(rows)
-  return redirect(url_for("index"))
+  print(row)
+  form = AmenityForm()
+  form.name.data = name
+  form.lat.data = lat
+  form.lon.data = lon
+  form.rating.data = rating
+  form.geohash4.data = geohash4 
+  form.amenity.data = amenity 
+  form.id.data = id 
+  return render_template("amenity_edit.html", amenity_form=form)
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
