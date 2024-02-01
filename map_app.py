@@ -19,6 +19,7 @@ from typing import Optional
 import sqlalchemy as sa
 import sqlalchemy.orm as so
 from sqlalchemy import create_engine, text, event
+from sqlalchemy import Table, MetaData
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 
@@ -63,6 +64,7 @@ def run_stmt(engine, stmt, max_retries=3):
         rs = conn.execute(stmt)
         for row in rs:
           rv.append(row)
+        conn.commit() # Didn't realize I had to explicitly commit here
       return rv
     except SerializationFailure as e:
       logging.warning("Error: %s", e)
@@ -70,7 +72,7 @@ def run_stmt(engine, stmt, max_retries=3):
       sleep_s = (2**retry) * 0.1 * (random.random() + 0.5)
       logging.warning("Sleeping %s s", sleep_s)
       time.sleep(sleep_s)
-    except (sqlalchemy.exc.OperationalError, psycopg2.OperationalError) as e:
+    except (sa.exc.OperationalError, psycopg2.OperationalError) as e:
       # Get a new connection and try again
       logging.warning("Error: %s", e)
       logging.warning("EXECUTE CONNECTION FAILURE BRANCH")
@@ -91,6 +93,7 @@ app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = { "pool_size": 10, "pool_pre_ping": True }
 login_manager = LoginManager(app)
 login_manager.init_app(app)
+osm_table = Table("osm", MetaData(), autoload_with=eng_write)
 
 # SQLAlchemy (https://flask-sqlalchemy.palletsprojects.com/en/3.1.x/quickstart/)
 class Base(DeclarativeBase):
@@ -247,12 +250,23 @@ def index():
 # Handle the case when the user submits the form
 @app.route("/amenity/edit", methods=["POST"])
 def edit_post():
-  # This would do an UPDATE, but it would need the geohash4, amenity, and id PK values
   if not current_user.is_authenticated:
     return redirect(url_for("login"))
   form = AmenityForm()
   if form.validate_on_submit():
     print("Got an update for '{}' -- rating: {}".format(form.name.data, form.rating.data))
+    # UPDATE code here
+    sql = """
+    UPDATE osm SET rating = :rating
+    WHERE geohash4 = :geohash4 AND amenity = :amenity AND id = :id
+    RETURNING rating
+    """
+    stmt = text(sql).bindparams(
+      rating=form.rating.data,
+      geohash4=form.geohash4.data, amenity=form.amenity.data, id=form.id.data
+    )
+    rv = run_stmt(eng_write, stmt)
+    print("run_stmt() returned", rv)
     return render_template("amenity_edit.html", amenity_form=form)
 
 # Handle the HTTP GET from the <a href...> link
