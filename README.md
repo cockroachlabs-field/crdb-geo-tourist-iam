@@ -37,7 +37,7 @@ various sizes.  Deeper discussion of this topic is available
 [in the docs](https://www.cockroachlabs.com/docs/v20.2/spatial-indexes) and
 [in this blog post](https://www.cockroachlabs.com/blog/how-we-built-spatial-indexing/).
 
-<img src="./mobile_view.png" width="360" alt="Running on iPhone">
+<img src="./mobile_view_iam.png" width="360" alt="Running on iPhone">
 (App running in an iPhone, in Safari, maps by OpenStreetMap)
 
 ## Data
