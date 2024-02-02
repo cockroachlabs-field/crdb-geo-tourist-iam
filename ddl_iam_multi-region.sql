@@ -2,9 +2,10 @@
   DDL for the tables in the CRDB Geo Tourist app with IAM
   Tables are multi-region
  */
-ALTER DATABASE defaultdb PRIMARY REGION "gcp-us-east1";
-ALTER DATABASE defaultdb ADD REGION "gcp-europe-west1";
-ALTER DATABASE defaultdb ADD REGION "gcp-us-central1";
+
+ALTER DATABASE defaultdb PRIMARY REGION "aws-us-east-1";
+ALTER DATABASE defaultdb ADD REGION "aws-us-west-2";
+ALTER DATABASE defaultdb ADD REGION "aws-eu-west-1";
 
 ALTER DATABASE defaultdb SURVIVE REGION FAILURE;
 
@@ -34,8 +35,8 @@ CREATE TABLE public.osm
 ALTER TABLE public.osm ADD COLUMN crdb_region crdb_internal_region NOT NULL AS
 (
   CASE
-    WHEN SUBSTRING(geohash4 FROM 1 FOR 1) IN ('9') THEN 'gcp-us-central1'
-    WHEN SUBSTRING(geohash4 FROM 1 FOR 1) IN ('u', 'g', 'e', 's') THEN 'gcp-europe-west1'
+    WHEN SUBSTRING(geohash4 FROM 1 FOR 1) IN ('9') THEN 'aws-us-east-1'
+    WHEN SUBSTRING(geohash4 FROM 1 FOR 1) IN ('u', 'g', 'e', 's') THEN 'aws-eu-west-1'
   END
 ) STORED;
 
