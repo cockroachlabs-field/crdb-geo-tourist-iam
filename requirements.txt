@@ -1,15 +1,15 @@
 psycopg2-binary
-Werkzeug==2.2.2
-Flask==2.1.0
+Flask==3.0.1
+Werkzeug==3.0.1
 gunicorn
 waitress
 python-geohash
 Geohash
 flask-cors
-sqlalchemy<2.0
-sqlalchemy-cockroachdb
 flask-login
 flask-wtf
-flask-sqlalchemy
 email-validator
+Flask-SQLAlchemy==3.1.1
+SQLAlchemy==2.0.25
+sqlalchemy-cockroachdb==2.0.1
 
