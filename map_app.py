@@ -254,7 +254,7 @@ def edit_post():
     return redirect(url_for("login"))
   form = AmenityForm()
   if form.validate_on_submit():
-    print("Got an update for '{}' -- rating: {}".format(form.name.data, form.rating.data))
+    print("UPDATE for '{}': rating = {}".format(form.name.data, form.rating.data))
     # UPDATE code here
     sql = """
     UPDATE osm SET rating = :rating
@@ -266,8 +266,9 @@ def edit_post():
       geohash4=form.geohash4.data, amenity=form.amenity.data, id=form.id.data
     )
     rv = run_stmt(eng_write, stmt)
+    url = "/?amenity={}&lat={}&lon={}".format(form.amenity.data, form.lat.data, form.lon.data)
     print("run_stmt() returned", rv)
-    return render_template("amenity_edit.html", amenity_form=form)
+    return render_template("amenity_edit.html", amenity_form=form, url=url)
 
 # Handle the HTTP GET from the <a href...> link
 # Pre-populate the form based on values in the HTTP request:

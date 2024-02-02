@@ -59,10 +59,20 @@
   var amenityTypes = ["restaurant", "pub", "cafe", "bar"];
   var amenity = amenityTypes[Math.floor(Math.random() * amenityTypes.length)];
   var urlParams = new URLSearchParams(window.location.search);
+  var lat, lon;
   if (urlParams) {
     var myParam = urlParams.get("amenity");
     if (myParam && myParam.length > 0) {
       amenity = myParam;
+    }
+    // The lat, lon values are used to restore the tourist's location after editing an amenity
+    myParam = urlParams.get("lat");
+    if (myParam && myParam.length > 0) {
+      lat = myParam;
+    }
+    myParam = urlParams.get("lon");
+    if (myParam && myParam.length > 0) {
+      lon = myParam;
     }
   }
 
@@ -147,6 +157,11 @@
   function setInitialView() {
     $.get("/sites", function(data) {
       pt = L.latLng(data);
+      // lat and lon could have been provided at HTTP GET parameters:
+      // http://localhost:8080/?amenity=pub&lat=48.1363729&lon=11.579688
+      if (lat && lon) {
+        pt = L.latLng(lat, lon);
+      }
       console.log("Tourist location: " + pt);
       mymap.setView(pt, 16);
       getFeatures(pt, amenity);

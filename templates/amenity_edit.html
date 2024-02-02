@@ -4,7 +4,7 @@
 
 <div class="w-25 p-3">
 {{ wtf.quick_form(amenity_form, action="/amenity/edit") }}
-<button class="btn btn-primary mb-3" onClick="location.assign('/');">Back to Map</button>
+<button class="btn btn-primary mb-3" onClick="location.assign('{{ url }}');">Back to Map</button>
 </div>
 
 {% endblock %}
