@@ -87,7 +87,7 @@ def run_stmt(engine, stmt, max_retries=3):
 
 # Initialize the app
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "my_default_secret_key")
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", os.urandom(24).hex())
 app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 # For next line: https://flask-sqlalchemy.palletsprojects.com/en/2.x/api/
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = { "pool_size": 10, "pool_pre_ping": True }
