@@ -121,6 +121,15 @@ class Tourist(UserMixin, db.Model):
   def check_password(self, password):
     return check_password_hash(self.password_hash, password)
 
+# https://community.plotly.com/t/how-to-tell-if-user-is-mobile-or-desktop-in-backend/47270/3
+def is_mobile():
+  user_agent = request.headers.get("User-Agent")
+  user_agent = user_agent.lower()
+  phones = ["android", "iphone"]
+  if any(x in user_agent for x in phones):
+    return True
+  return False
+
 class SignUpForm(FlaskForm):
   username = StringField("Username", validators=[DataRequired()])
   email = StringField("Email", validators=[DataRequired(), Email()])
@@ -268,16 +277,7 @@ def edit_post():
     rv = run_stmt(eng_write, stmt)
     url = "/?amenity={}&lat={}&lon={}".format(form.amenity.data, form.lat.data, form.lon.data)
     print("run_stmt() returned", rv)
-    return render_template("amenity_edit.html", amenity_form=form, url=url)
-
-# https://community.plotly.com/t/how-to-tell-if-user-is-mobile-or-desktop-in-backend/47270/3
-def is_mobile():
-  user_agent = request.headers.get("User-Agent")
-  user_agent = user_agent.lower()
-  phones = ["android", "iphone"]
-  if any(x in user_agent for x in phones):
-    return True
-  return False
+    return render_template("amenity_edit.html", amenity_form=form, url=url, is_mobile=is_mobile())
 
 # Handle the HTTP GET from the <a href...> link
 # Pre-populate the form based on values in the HTTP request:
