@@ -256,6 +256,11 @@ def index():
   logging.warning("current_user: {}".format(current_user))
   return render_template("index.html")
 
+# Generate the URL to get back to the map when using the amenity edit view
+def gen_url(form):
+  url = "/?amenity={}&lat={}&lon={}".format(form.amenity.data, form.lat.data, form.lon.data)
+  return url
+
 # Handle the case when the user submits the form
 @app.route("/amenity/edit", methods=["POST"])
 def edit_post():
@@ -275,9 +280,8 @@ def edit_post():
       geohash4=form.geohash4.data, amenity=form.amenity.data, id=form.id.data
     )
     rv = run_stmt(eng_write, stmt)
-    url = "/?amenity={}&lat={}&lon={}".format(form.amenity.data, form.lat.data, form.lon.data)
     print("run_stmt() returned", rv)
-    return render_template("amenity_edit.html", amenity_form=form, url=url, is_mobile=is_mobile())
+    return render_template("amenity_edit.html", amenity_form=form, url=gen_url(form), is_mobile=is_mobile())
 
 # Handle the HTTP GET from the <a href...> link
 # Pre-populate the form based on values in the HTTP request:
@@ -304,7 +308,7 @@ def edit_get(geohash4, amenity, id):
   form.geohash4.data = geohash4 
   form.amenity.data = amenity 
   form.id.data = id 
-  return render_template("amenity_edit.html", amenity_form=form, is_mobile=is_mobile())
+  return render_template("amenity_edit.html", amenity_form=form, url=gen_url(form), is_mobile=is_mobile())
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
