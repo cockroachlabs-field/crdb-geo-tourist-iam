@@ -270,6 +270,15 @@ def edit_post():
     print("run_stmt() returned", rv)
     return render_template("amenity_edit.html", amenity_form=form, url=url)
 
+# https://community.plotly.com/t/how-to-tell-if-user-is-mobile-or-desktop-in-backend/47270/3
+def is_mobile():
+  user_agent = request.headers.get("User-Agent")
+  user_agent = user_agent.lower()
+  phones = ["android", "iphone"]
+  if any(x in user_agent for x in phones):
+    return True
+  return False
+
 # Handle the HTTP GET from the <a href...> link
 # Pre-populate the form based on values in the HTTP request:
 # https://stackoverflow.com/questions/35892144/pre-populate-an-edit-form-with-wtforms-and-flask
@@ -295,7 +304,7 @@ def edit_get(geohash4, amenity, id):
   form.geohash4.data = geohash4 
   form.amenity.data = amenity 
   form.id.data = id 
-  return render_template("amenity_edit.html", amenity_form=form)
+  return render_template("amenity_edit.html", amenity_form=form, is_mobile=is_mobile())
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -309,7 +318,7 @@ def login():
       return redirect(url_for("login"))
     login_user(user, remember=login_form.remember_me.data)
     return redirect(url_for("index"))
-  return render_template("login.html", login_form=login_form)
+  return render_template("login.html", login_form=login_form, is_mobile=is_mobile())
 
 # Default login view for pages requiring user to be logged in
 login_manager.login_view = "login"
