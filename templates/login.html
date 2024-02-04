@@ -2,11 +2,6 @@
 {% import "bootstrap_wtf.html" as wtf %}
 {% block content %}
 
-<!--
-  FIXME: on mobile this has to be wider (same on amenity_edit.html)
-  https://stackoverflow.com/questions/55375332/check-if-device-is-mobile-in-flask
-  https://community.plotly.com/t/how-to-tell-if-user-is-mobile-or-desktop-in-backend/47270/3
-  -->
 {% if is_mobile %}
 <div class="w-75 p-3">
 {% else %}

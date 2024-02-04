@@ -2,6 +2,10 @@
 {% import "bootstrap_wtf.html" as wtf %}
 {% block content %}
 
+<!--
+  FIXME: this isn't rendering at mobile width after form is submitted
+  Probably need to include is_mobile as a form field (hidden)
+-->
 {% if is_mobile %}
 <div class="w-75 p-3">
 {% else %}
