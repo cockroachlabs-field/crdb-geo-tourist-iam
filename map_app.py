@@ -271,13 +271,16 @@ def edit_post():
     print("UPDATE for '{}': rating = {}".format(form.name.data, form.rating.data))
     # UPDATE code here
     sql = """
-    UPDATE osm SET rating = :rating
+    UPDATE osm SET rating = :rating, name = :name
     WHERE geohash4 = :geohash4 AND amenity = :amenity AND id = :id
     RETURNING rating
     """
     stmt = text(sql).bindparams(
-      rating=form.rating.data,
-      geohash4=form.geohash4.data, amenity=form.amenity.data, id=form.id.data
+      rating=form.rating.data
+      , name=form.name.data
+      , geohash4=form.geohash4.data
+      , amenity=form.amenity.data
+      , id=form.id.data
     )
     rv = run_stmt(eng_write, stmt)
     print("run_stmt() returned", rv)
