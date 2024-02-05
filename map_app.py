@@ -22,6 +22,7 @@ from sqlalchemy import create_engine, text, event
 from sqlalchemy import Table, MetaData
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
+import warnings
 
 # The Flask and related imports
 from flask import Flask, request, Response, render_template, flash, redirect, url_for
@@ -93,7 +94,12 @@ app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = { "pool_size": 10, "pool_pre_ping": True }
 login_manager = LoginManager(app)
 login_manager.init_app(app)
-osm_table = Table("osm", MetaData(), autoload_with=eng_write)
+
+# Suppress SQLAlchemy warnings
+osm_table = None
+with warnings.catch_warnings():
+  warnings.simplefilter("ignore", category=sa.exc.SAWarning)
+  osm_table = Table("osm", MetaData(), autoload_with=eng_write)
 
 # SQLAlchemy (https://flask-sqlalchemy.palletsprojects.com/en/3.1.x/quickstart/)
 class Base(DeclarativeBase):
