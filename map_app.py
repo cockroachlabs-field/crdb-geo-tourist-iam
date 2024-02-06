@@ -136,7 +136,12 @@ def is_mobile():
     return True
   return False
 
-class SignUpForm(FlaskForm):
+# Inherit from this case class for Login, Signup
+class LatLonForm(FlaskForm):
+  lat = HiddenField("lat")
+  lon = HiddenField("lon")
+
+class SignUpForm(LatLonForm):
   username = StringField("Username", validators=[DataRequired()])
   email = StringField("Email", validators=[DataRequired(), Email()])
   password = PasswordField("Password", validators=[DataRequired()])
@@ -153,7 +158,7 @@ class SignUpForm(FlaskForm):
     if user is not None:
       raise ValidationError("Please use a different email address.")
 
-class LoginForm(FlaskForm):
+class LoginForm(LatLonForm):
   username = StringField("Username", validators=[DataRequired()])
   password = PasswordField("Password", validators=[DataRequired()])
   remember_me = BooleanField("Remember Me")
@@ -321,16 +326,26 @@ def edit_get(geohash4, amenity, id):
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-  if current_user.is_authenticated:
-    return redirect(url_for("index"))
   login_form = LoginForm()
+  if request.method == 'POST':
+    lat = login_form.lat.data
+    lon = login_form.lon.data
+  else:
+    lat = request.args.get("lat")
+    lon = request.args.get("lon")
+  url_params = "lat={}&lon={}".format(lat, lon)
+  print("url_params: {}".format(url_params))
+  if current_user.is_authenticated:
+    return redirect("/?" + url_params)
   if login_form.validate_on_submit():
     user = db.session.scalar(sa.select(Tourist).where(Tourist.username == login_form.username.data))
     if user is None or not user.check_password(login_form.password.data):
       flash("Invalid username or password")
-      return redirect(url_for("login"))
+      return redirect("/login?" + url_params)
     login_user(user, remember=login_form.remember_me.data)
-    return redirect(url_for("index"))
+    return redirect("/?" + url_params)
+  login_form.lat.data = lat
+  login_form.lon.data = lon
   return render_template("login.html", login_form=login_form, is_mobile=is_mobile())
 
 # Default login view for pages requiring user to be logged in

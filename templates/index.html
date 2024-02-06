@@ -50,7 +50,7 @@
   {% if current_user.is_authenticated %}
   onClick="location.assign('/logout');">Logout <em>{{ current_user.username }}</em>
   {% else %}
-  onClick="location.assign('/login');">Log In / Sign Up
+  onClick="location.assign(genUrlWithCoords('/login'));">Log In / Sign Up
   {% endif %}
   </button>
 
@@ -218,9 +218,18 @@
 
   // Fires when map stops moving
   mymap.on("moveend", function () {
-    //console.log(mymap.getCenter().toString());
+    var coords = mymap.getCenter();
+    // Set these two global variables
+    lat = coords.lat;
+    lon = coords.lng;
+    console.log("lat: " + coords.lat + ", lon: " + coords.lng);
     getFeatures(mymap.getCenter(), amenity);
   });
+
+  function genUrlWithCoords(baseUrl)
+  {
+    return baseUrl + "?lat=" + lat + "&lon=" + lon;
+  }
 </script>
 </body>
 </html>
