@@ -37,7 +37,13 @@ if db_url is None:
   print("Environment DB_URL must be set. Quitting.")
   sys.exit(1)
 
-logging.basicConfig(level=logging.INFO, format="[%(asctime)s] %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p")
+log_level = os.environ.get("LOGLEVEL", "INFO").upper()
+logging.basicConfig(
+  level=log_level
+  , format="[%(asctime)s] %(message)s"
+  , datefmt="%m/%d/%Y %I:%M:%S %p"
+)
+print("Log level: {} (export LOGLEVEL=[DEBUG|INFO|WARN|ERROR] to change this)".format(log_level))
 
 db_url = re.sub(r"^postgres(ql)?", "cockroachdb", db_url)
 # For using follower reads:
@@ -279,7 +285,7 @@ def edit_post():
     return redirect(url_for("login"))
   form = AmenityForm()
   if form.validate_on_submit():
-    print("UPDATE for '{}': rating = {}".format(form.name.data, form.rating.data))
+    logging.info("UPDATE for '{}': rating = {}".format(form.name.data, form.rating.data))
     # UPDATE code here
     sql = """
     UPDATE osm SET rating = :rating, name = :name
@@ -294,7 +300,6 @@ def edit_post():
       , id=form.id.data
     )
     rv = run_stmt(eng_write, stmt)
-    print("run_stmt() returned", rv)
     return render_template("amenity_edit.html", amenity_form=form, url=gen_url(form), is_mobile=is_mobile())
 
 # Handle the HTTP GET from the <a href...> link
@@ -312,8 +317,8 @@ def edit_get(geohash4, amenity, id):
   stmt = text(sql).bindparams(geohash4=geohash4, amenity=amenity, id=id)
   row = run_stmt(eng_write, stmt)
   (name, lat, lon, rating) = row[0]
-  print("geohash4 = '{}' AND amenity = '{}' AND id = {}".format(geohash4, amenity, id))
-  print(row)
+  logging.info("geohash4 = '{}' AND amenity = '{}' AND id = {}".format(geohash4, amenity, id))
+  logging.info("row: %s", row)
   form = AmenityForm()
   form.name.data = name
   form.lat.data = lat
@@ -334,7 +339,7 @@ def login():
     lat = request.args.get("lat")
     lon = request.args.get("lon")
   url_params = "lat={}&lon={}".format(lat, lon)
-  print("url_params: {}".format(url_params))
+  logging.info("url_params: {}".format(url_params))
   if current_user.is_authenticated:
     return redirect("/?" + url_params)
   if login_form.validate_on_submit():
