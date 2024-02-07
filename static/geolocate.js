@@ -75,3 +75,20 @@ function showError(error) {
   }
 }
 
+/*
+  This relies on leaflet.js having been pulled into the HTML page and also
+  mymap having been defined.
+ */
+var command = L.control({position: 'topleft'});
+command.onAdd = function (mymap) {
+  var div = L.DomUtil.create('div', 'command');
+  div.innerHTML =
+    '<form>'
+    + '<input id="command" type="checkbox" onchange="setGeoMonitor(this)"/>'
+    + '<b>Enable realtime location?</b>'
+    + '</form>'
+    + '<div id="message"></div>';
+  return div;
+};
+command.addTo(mymap);
+
