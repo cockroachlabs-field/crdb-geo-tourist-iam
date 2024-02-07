@@ -1,3 +1,3 @@
-tag=1.16
+tag=1.1
 docker_id="mgoddard"
-img_name="crdb-geo-tourist"
+img_name="iam-geo-tourist"
