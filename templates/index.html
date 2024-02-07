@@ -50,7 +50,7 @@
   {% if current_user.is_authenticated %}
   onClick="location.assign('/logout');">Logout <em>{{ current_user.username }}</em>
   {% else %}
-  onClick="location.assign(genUrlWithCoords('/login'));">Log In / Sign Up
+  onClick="location.assign(saveStateReturnUrl('/login'));">Log In / Sign Up
   {% endif %}
   </button>
 
@@ -58,9 +58,11 @@
   // Type of amenity (pub, cafe, bar, restaurant, ...)
   var amenityTypes = ["restaurant", "pub", "cafe", "bar"];
   var amenity = amenityTypes[Math.floor(Math.random() * amenityTypes.length)];
-  var urlParams = new URLSearchParams(window.location.search);
+  //var urlParams = new URLSearchParams(window.location.search);
+  var urlParams;
   var lat, lon;
   if (urlParams) {
+    console.log("Got URL params");
     var myParam = urlParams.get("amenity");
     if (myParam && myParam.length > 0) {
       amenity = myParam;
@@ -74,13 +76,24 @@
     if (myParam && myParam.length > 0) {
       lon = myParam;
     }
+  } else {
+    var localLat = localStorage.getItem("lat");
+    var localLon = localStorage.getItem("lon");
+    if (localLat != null && localLon != null) {
+      lat = localLat;
+      lon = localLon;
+    }
+    var localAmenity = localStorage.getItem("amenity");
+    if (localAmenity != null) {
+      amenity = localAmenity;
+    }
   }
 
   // Preserve zoom level across page refreshes due to map movement
   function getZoom()
   {
     var rv = 16;
-    var curZoom = localStorage.currentZoom;
+    var curZoom = localStorage.getItem("currentZoom");
     if (! isNaN(curZoom)) {
       rv = curZoom;
     }
@@ -238,13 +251,17 @@
   // Fires when map stops zooming
   mymap.on("zoomend", function () {
     var zoom = mymap.getZoom();
-    localStorage.currentZoom = zoom;
-    console.log("zoom: " + zoom);
+    localStorage.setItem("currentZoom", zoom);
+    console.log("getZoom(): " + getZoom());
   });
 
-  function genUrlWithCoords(baseUrl)
+  function saveStateReturnUrl(baseUrl)
   {
-    return baseUrl + "?lat=" + lat + "&lon=" + lon;
+    localStorage.setItem("lat", lat);
+    localStorage.setItem("lon", lon);
+    localStorage.setItem("amenity", amenity);
+    //return baseUrl + "?lat=" + lat + "&lon=" + lon;
+    return baseUrl;
   }
 </script>
 {% if current_user.is_authenticated %}

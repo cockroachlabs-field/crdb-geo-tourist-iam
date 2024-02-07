@@ -332,6 +332,7 @@ def edit_get(geohash4, amenity, id):
 @app.route("/login", methods=["GET", "POST"])
 def login():
   login_form = LoginForm()
+  """
   if request.method == 'POST':
     lat = login_form.lat.data
     lon = login_form.lon.data
@@ -340,17 +341,20 @@ def login():
     lon = request.args.get("lon")
   url_params = "lat={}&lon={}".format(lat, lon)
   logging.info("url_params: {}".format(url_params))
+  """
   if current_user.is_authenticated:
-    return redirect("/?" + url_params)
+    return redirect("/")
   if login_form.validate_on_submit():
     user = db.session.scalar(sa.select(Tourist).where(Tourist.username == login_form.username.data))
     if user is None or not user.check_password(login_form.password.data):
       flash("Invalid username or password")
-      return redirect("/login?" + url_params)
+      return redirect("/login")
     login_user(user, remember=login_form.remember_me.data)
-    return redirect("/?" + url_params)
+    return redirect("/")
+  """
   login_form.lat.data = lat
   login_form.lon.data = lon
+  """
   return render_template("login.html", login_form=login_form, is_mobile=is_mobile())
 
 # Default login view for pages requiring user to be logged in
