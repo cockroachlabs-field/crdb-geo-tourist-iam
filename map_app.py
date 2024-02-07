@@ -37,13 +37,13 @@ if db_url is None:
   print("Environment DB_URL must be set. Quitting.")
   sys.exit(1)
 
-log_level = os.environ.get("LOGLEVEL", "INFO").upper()
+log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(
   level=log_level
   , format="[%(asctime)s] %(message)s"
   , datefmt="%m/%d/%Y %I:%M:%S %p"
 )
-print("Log level: {} (export LOGLEVEL=[DEBUG|INFO|WARN|ERROR] to change this)".format(log_level))
+print("Log level: {} (export LOG_LEVEL=[DEBUG|INFO|WARN|ERROR] to change this)".format(log_level))
 
 db_url = re.sub(r"^postgres(ql)?", "cockroachdb", db_url)
 # For using follower reads:
