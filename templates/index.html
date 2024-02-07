@@ -10,7 +10,6 @@
   <script src="/static/leaflet.js"></script>
   <script src="/static/leaflet.contextmenu.js"></script>
   <script src="/static/jquery-3.7.1.min.js"></script>
-  <script src="/static/geolocate.js"></script>
   <link rel="icon" type="image/png" href="/static/crl-32x32.png" sizes="32x32">
 
   <style>
@@ -153,11 +152,6 @@
 	      }]
   });
 
-  /*
-   * TODO: add realtime geo location
-   * https://developer.mozilla.org/en-US/docs/Web/API/Geolocation/watchPosition
-   */
-
   // A set of places where the map will intially be centered, since it's a simulation and not based
   // on the actual position of the user.  These points come from the /sites endpoint of map_app.py.
   function setInitialView() {
@@ -168,9 +162,7 @@
       if (lat && lon) {
         pt = L.latLng(lat, lon);
       }
-      console.log("Tourist location: " + pt);
       mymap.setView(pt, 16);
-      getFeatures(pt, amenity);
     });
   }
 
@@ -236,8 +228,10 @@
   {
     return baseUrl + "?lat=" + lat + "&lon=" + lon;
   }
-
-  // Add checkbox to control sharing of location
+</script>
+<script src="/static/geolocate.js"></script>
+<script>
+  // Add checkbox which controls sharing of location
   var command = L.control({position: 'topleft'});
   command.onAdd = function (mymap) {
     var div = L.DomUtil.create('div', 'command');

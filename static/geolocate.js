@@ -53,6 +53,9 @@ function onSuccess(position) {
     'Longitude: ' + position.coords.longitude + '<br>' +
     'Timestamp: ' + datetime
   );
+  // Move map to this (lat, lon)
+  var pt = L.latLng(position.coords.latitude, position.coords.longitude);
+  mymap.setView(pt, 16);
 }
 
 function showError(error) {
