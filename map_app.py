@@ -376,14 +376,6 @@ def signup():
     return redirect(url_for("login"))
   return render_template("signup.html", signup_form=signup_form)
 
-@app.route("/sandbox")
-def sandbox():
-  return render_template("sandbox.html")
-
-@app.route("/locate")
-def locate():
-  return render_template("geolocate.html")
-
 if __name__ == "__main__":
   port = int(os.getenv("FLASK_PORT", 18080))
   useGeohash = (os.getenv("USE_GEOHASH", "true").lower() == "true")
