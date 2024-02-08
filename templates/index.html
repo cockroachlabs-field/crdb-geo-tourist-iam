@@ -60,6 +60,7 @@
   var amenity = amenityTypes[Math.floor(Math.random() * amenityTypes.length)];
   var urlParams = new URLSearchParams(window.location.search);
   var lat, lon;
+  var zoom = 16;
   if (urlParams) {
     var myParam = urlParams.get("amenity");
     if (myParam && myParam.length > 0) {
@@ -74,17 +75,10 @@
     if (myParam && myParam.length > 0) {
       lon = myParam;
     }
-  }
-
-  // Preserve zoom level across page refreshes due to map movement
-  function getZoom()
-  {
-    var rv = 16;
-    var curZoom = localStorage.currentZoom;
-    if (! isNaN(curZoom)) {
-      rv = curZoom;
+    myParam = urlParams.get("zoom");
+    if (myParam && myParam.length > 0) {
+      zoom = myParam;
     }
-    return rv;
   }
 
   var allMarkers = [];
@@ -105,7 +99,7 @@
     $.ajax ({
     url: "/features",
     type: "POST",
-    data: JSON.stringify({ "amenity": amenity, "lat": pos.lat, "lon": pos.lng}),
+    data: JSON.stringify({ "amenity": amenity, "lat": pos.lat, "lon": pos.lng, "zoom": zoom }),
     dataType: "json",
     contentType: "application/json; charset=utf-8",
     success: function(data) {
@@ -173,7 +167,7 @@
       if (lat && lon) {
         pt = L.latLng(lat, lon);
       }
-      mymap.setView(pt, getZoom());
+      mymap.setView(pt, zoom);
     });
   }
 
@@ -231,20 +225,19 @@
     // Set these two global variables
     lat = coords.lat;
     lon = coords.lng;
-    console.log("lat: " + lat + ", lon: " + lon);
+    zoom = mymap.getZoom();
+    console.log("lat: " + lat + ", lon: " + lon + ", zoom: " + zoom);
     getFeatures(mymap.getCenter(), amenity);
   });
 
   // Fires when map stops zooming
   mymap.on("zoomend", function () {
-    var zoom = mymap.getZoom();
-    localStorage.currentZoom = zoom;
-    console.log("zoom: " + zoom);
+    zoom = mymap.getZoom();
   });
 
   function genUrlWithCoords(baseUrl)
   {
-    return baseUrl + "?lat=" + lat + "&lon=" + lon;
+    return baseUrl + "?lat=" + lat + "&lon=" + lon + "&zoom=" + zoom;
   }
 </script>
 {% if current_user.is_authenticated %}

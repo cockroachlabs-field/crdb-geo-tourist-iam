@@ -146,6 +146,7 @@ def is_mobile():
 class LatLonForm(FlaskForm):
   lat = HiddenField("lat")
   lon = HiddenField("lon")
+  zoom = HiddenField("zoom")
 
 class SignUpForm(LatLonForm):
   username = StringField("Username", validators=[DataRequired()])
@@ -212,6 +213,7 @@ def features():
   obj = request.get_json(force=True)
   lat = float(obj["lat"])
   lon = float(obj["lon"])
+  zoom = obj["zoom"]
   amenity = obj["amenity"]
   geohash = Geohash.encode(lat, lon)
   obj["geohash"] = geohash
@@ -255,6 +257,7 @@ def features():
   for row in run_stmt(eng_read, stmt):
     (name, dist_m, lat, lon, rating, geohash4, id) = row
     d = {}
+    d["zoom"] = zoom
     d["name"] = name
     if current_user.is_authenticated: # Logged in => editable
       d["name"] = '<a href="/amenity/edit/{}/{}/{}">{}</a>'.format(geohash4, amenity, id, name)
@@ -335,10 +338,12 @@ def login():
   if request.method == 'POST':
     lat = login_form.lat.data
     lon = login_form.lon.data
+    zoom = login_form.zoom.data
   else:
     lat = request.args.get("lat")
     lon = request.args.get("lon")
-  url_params = "lat={}&lon={}".format(lat, lon)
+    zoom = request.args.get("zoom")
+  url_params = "lat={}&lon={}&zoom={}".format(lat, lon, zoom)
   logging.info("url_params: {}".format(url_params))
   if current_user.is_authenticated:
     return redirect("/?" + url_params)
@@ -351,6 +356,7 @@ def login():
     return redirect("/?" + url_params)
   login_form.lat.data = lat
   login_form.lon.data = lon
+  login_form.zoom.data = zoom
   return render_template("login.html", login_form=login_form, is_mobile=is_mobile())
 
 # Default login view for pages requiring user to be logged in
