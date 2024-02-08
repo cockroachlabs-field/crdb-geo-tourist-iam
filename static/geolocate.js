@@ -55,7 +55,7 @@ function onSuccess(position) {
   );
   // Move map to this (lat, lon)
   var pt = L.latLng(position.coords.latitude, position.coords.longitude);
-  mymap.setView(pt, 16);
+  mymap.setView(pt, zoom);
 }
 
 function showError(error) {
