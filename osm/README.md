@@ -24,25 +24,16 @@ I initally used when building the data pipeline, so that code is based on XML.  
    the `<` character (logic here: since XML can't contain that char, it's not going to be present
    in the data):
    ```time gzcat ./osm_cville.xml.gz | ../crdb-geo-tourist-iam/osm/extract_points_from_osm_xml.pl | gzip - > osm_cville_02.08.24.txt.gz```
-
-
-## BELOW IS JUST FOR EXAMPLE MARKUP
-
-![Screenshot pubs](./closest_pubs_osm_iam.jpg)
-(App shown running on a laptop)
-
-1. `GEOGRAPHY`: the data type to represent each of the `POINT` data elements associated with the amenity
-1. `ST_Distance`: used to calculate the distance from the user to each of these locations
-1. `ST_Y` and `ST_X`: are used to retrieve the longitude and latitude of each of these points, for plotting onto the map
-
-One aspect of CockroachDB's spatial capability is especially interesting: the
-way the spatial index works.  In order to preserve CockroachDB's unique ability
-to scale horizontally by adding nodes to a running cluster, its approach to
-spatial indexing is to decompose of the space being indexed into buckets of
-various sizes.  Deeper discussion of this topic is available
-[in the docs](https://www.cockroachlabs.com/docs/v20.2/spatial-indexes) and
-[in this blog post](https://www.cockroachlabs.com/blog/how-we-built-spatial-indexing/).
-
-<img src="./mobile_view_iam.jpg" width="360" alt="Running on iPhone">
-(App running in an iPhone, in Safari, maps by OpenStreetMap)
+   - The resulting file has rows with this format: ```11198305607<2023-09-17T19:14:15Z<0<38.0350278<-78.486494<Random Row Brewing<addr:city=Charlottesville|addr:housenumber=608|addr:postcode=22903|addr:state=VA|addr:street=Preston Avenue|addr:unit=A|amenity=pub|microbrewery=yes|website=https://randomrow.com|dqb|dqb0|dqb0m|dqb0mu<dqb0mupfh5h66```
+1. In a later step, we'll get some ratings to add to the data, one per row.  This involves doing a web
+search, so we'll need to provide more context than what we have now, for better accuracy.  To do that,
+we'll augment the data with the city name, and the data to use for that is available
+[here](https://osmnames.org/download/).  Once that file is downloaded as `planet-latest_geonames.tsv.gz`,
+proceed as follows:
+   - Use the DDL in `../../crdb-geo-tourist-iam/osm/osm_names.sql` to create the `osm_names` table
+   - Run the following to load the data: ```time gzcat ./planet-latest_geonames.tsv.gz | ../crdb-geo-tourist-iam/osm/load_geonames.py```
+   - That takes a while on a MacBook (`55m12.335s`), so doing an EXPORT of this would be a good idea.
+   - Result: 9444352 rows in the table
+   - Next, we use this table to add the city name to each of the rows in the CSV: ```time gzcat osm_cville_02.08.24.txt.gz | ../crdb-geo-tourist-iam/osm/add_city.pl | gzip - > osm_cville_with_city_02.08.24.txt.gz```
+   - That took `real	0m35.512s`
 
