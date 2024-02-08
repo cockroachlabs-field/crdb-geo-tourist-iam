@@ -27,7 +27,7 @@ import logging
 #
 db_url = os.getenv("DB_URL")
 if db_url is None:
-  print("Environment DB_URL must be set. Quitting.")
+  print("Environment variable DB_URL must be set. Quitting.")
   sys.exit(1)
 
 logging.basicConfig(level=logging.INFO, format="[%(asctime)s] %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p")
