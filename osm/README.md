@@ -41,13 +41,13 @@ proceed as follows:
    - Run the following to load the data: ```time gzcat ./planet-latest_geonames.tsv.gz | ../crdb-geo-tourist-iam/osm/load_geonames.py```
    - That takes a while on a MacBook (`55m12.335s`), so doing an EXPORT of this would be a good idea.
    - Result: 9444352 rows in the table
-   - Next, we use this table to add the city name to each of the rows in the CSV: ```time gzcat osm_cville_02.08.24.txt.gz | ../crdb-geo-tourist-iam/osm/add_city.pl | gzip - > osm_cville_with_city_02.08.24.txt.gz```
+   - Next, we use this table to add the city name to each of the rows in the CSV that correspond to a bar, pub, cafe, or restaurant: ```time gzcat osm_cville_02.08.24.txt.gz | egrep 'amenity=(bar|pub|cafe|restaurant)' | ../crdb-geo-tourist-iam/osm/add_city.pl | gzip - > osm_cville_with_city_02.08.24.txt.gz```
    - That took `real	0m35.512s`
 1. Final data prep step: add the ratings for the amenities.  The most reliable source of data on this
 that I could find was the Brave search API, which is what I'll document here.
    - Sign up for an account and get an API key, from [here](https://brave.com/search/api/)
    - Run `export BRAVE_API_KEY=use_your_key_here`
-   - Run ```time gzcat osm_cville_with_city_02.08.24.txt.gz | egrep 'amenity=(bar|pub|cafe|restaurant)' | ../crdb-geo-tourist-iam/osm/add_ratings_to_data_file.py | gzip - > osm_cville_with_ratings_02.08.24.txt.gz```
+   - Run ```time gzcat osm_cville_with_city_02.08.24.txt.gz | ../crdb-geo-tourist-iam/osm/add_ratings_to_data_file.py | gzip - > osm_cville_with_ratings_02.08.24.txt.gz```
    - That took `real	3m23.768s` and also produces a newline-delimited JSON file, `brave_api.ndjson`
    containing the Brave search API results.
 1. Finally -- we get to load the data into the `osm` table:
