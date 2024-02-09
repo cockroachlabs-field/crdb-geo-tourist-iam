@@ -18,7 +18,7 @@ T_SLEEP_MS = 100 # Avoid rate limiting from Brave search API
 MAX_RETRIES = 3
 N_COLS = 8
 
-import re, sys, os, time, json
+import re, sys, os, time, json, random
 import urllib.parse
 import fileinput
 import datetime
@@ -59,6 +59,8 @@ def get_rating(query_terms):
       break
     except requests.exceptions.Timeout:
       pass
+    except requests.exceptions.ConnectionError:
+      time.sleep(random.randint(50, 2000)/1000)
   if r is None:
     eprint("URL: {} returned None".format(url))
     return rv
