@@ -54,6 +54,7 @@ sites.append({"name": "Mercado Antón Martín", "lat": 40.41170, "lon": -3.69850
 sites.append({"name": "Kyiv", "lat": 50.4474203, "lon": 30.5265874})
 sites.append({"name": "Austin", "lat": 30.260721, "lon": -97.747101})
 sites.append({"name": "Charlottesville", "lat": 38.0311977, "lon": -78.4829433})
+sites.append({"name": "Madison Square Park", "lat": 40.742348, "lon": -73.988355})
 
 max_retries = int(os.getenv("MAX_RETRIES", "3"))
 logging.info("MAX_RETRIES: {}".format(max_retries))
