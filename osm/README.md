@@ -6,6 +6,13 @@ For an overview of the data in the app, see the app's [README](../README.md).  T
 deals with specifics of adding data for an area not already covered in the app's default
 data set.  The notes here are current as of today (8 February 2024).
 
+## Prepared Data
+
+* [Austin](https://storage.googleapis.com/crl-goddard-gis/osm_austin_with_ratings_20240126.txt.gz)
+* [Charlottesville](https://storage.googleapis.com/crl-goddard-gis/osm_cville_with_ratings_20240208.txt.gz)
+* [Washington, DC](https://storage.googleapis.com/crl-goddard-gis/osm_dc_with_ratings_20240208.txt.gz)
+* [New York](https://storage.googleapis.com/crl-goddard-gis/osm_new_york_with_ratings_20240208.txt.gz)
+
 ## Process
 
 1. Navigate to [this site](https://app.protomaps.com/) and use the UI to extract data
