@@ -5,7 +5,7 @@
 
 var watchId = 0;
 var lastUpdateTime;
-var lastGeohash;
+var lastGeohash = "";
 var minFrequency = 5*1000;
 
 function supportsGeolocation() {
@@ -52,19 +52,19 @@ function onSuccess(position) {
   var curLat = position.coords.latitude;
   var curLon = position.coords.longitude;
   var curGeohash = encodeGeoHash(curLat, curLon).substring(0, 9); // 9 chars => +/- 2.4 meters
-  if(lastGeohash && (lastGeohash === curGeohash)) {
+  console.log("Geohash: " + curGeohash);
+  showMessage(
+    'Lat: ' + curLat + '<br>'
+    + 'Lon: ' + curLon + '<br>'
+    + datetime
+  );
+  if(lastGeohash == curGeohash) {
     console.log("Geohash hasn't changed");
     return;
   }
   lastGeohash = curGeohash;
-  console.log("Geohash: " + curGeohash);
-  showMessage(
-    'Latitude: ' + curLat + '<br>' +
-    'Longitude: ' + curLon + '<br>' +
-    'Timestamp: ' + datetime
-  );
   // Move map to this (lat, lon)
-  var pt = L.latLng(position.coords.latitude, position.coords.longitude);
+  var pt = L.latLng(curLat, curLon);
   mymap.setView(pt, zoom);
 }
 
