@@ -51,7 +51,11 @@ function onSuccess(position) {
   var datetime = new Date(position.timestamp).toLocaleString();
   var curLat = position.coords.latitude;
   var curLon = position.coords.longitude;
-  var curGeohash = encodeGeoHash(curLat, curLon).substring(0, 9); // 9 chars => +/- 2.4 meters
+  /*
+    9 chars => +/- 2.4 meters
+    8 chars => +/- 19 meters
+   */
+  var curGeohash = encodeGeoHash(curLat, curLon).substring(0, 8);
   console.log("Geohash: " + curGeohash);
   showMessage(
     'Lat: ' + curLat + '<br>'
