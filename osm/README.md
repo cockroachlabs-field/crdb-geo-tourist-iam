@@ -12,6 +12,7 @@ data set.  The notes here are current as of today (8 February 2024).
 * [Charlottesville](https://storage.googleapis.com/crl-goddard-gis/osm_cville_with_ratings_20240208.txt.gz)
 * [Washington, DC](https://storage.googleapis.com/crl-goddard-gis/osm_dc_with_ratings_20240208.txt.gz)
 * [New York](https://storage.googleapis.com/crl-goddard-gis/osm_new_york_with_ratings_20240208.txt.gz)
+* [Southern California](https://storage.googleapis.com/crl-goddard-gis/osm_so_cal_with_ratings_2024.02.09.txt.gz)
 
 ## Process
 
