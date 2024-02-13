@@ -12,4 +12,5 @@ email-validator
 Flask-SQLAlchemy==3.1.1
 SQLAlchemy==2.0.25
 sqlalchemy-cockroachdb==2.0.1
+Flask-Principal==0.4.0
 

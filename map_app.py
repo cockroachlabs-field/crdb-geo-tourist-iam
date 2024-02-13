@@ -20,17 +20,23 @@ import sqlalchemy as sa
 import sqlalchemy.orm as so
 from sqlalchemy import create_engine, text, event
 from sqlalchemy import Table, MetaData
+from sqlalchemy.dialects.postgresql import UUID
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 import warnings
 
 # The Flask and related imports
-from flask import Flask, request, Response, render_template, flash, redirect, url_for
+from flask import Flask, request, Response, render_template, flash, redirect, url_for, current_app
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, HiddenField
 from wtforms.validators import DataRequired, ValidationError, Email, EqualTo
 from werkzeug.security import generate_password_hash, check_password_hash
+
+# Authentication
 from flask_login import LoginManager, UserMixin, current_user, login_user, login_required, logout_user
+
+# Authorization
+from flask_principal import Principal, Identity, identity_changed, identity_loaded, RoleNeed, UserNeed
 
 db_url = os.getenv("DB_URL")
 if db_url is None:
@@ -98,6 +104,7 @@ app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", os.urandom(24).hex())
 app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 # For next line: https://flask-sqlalchemy.palletsprojects.com/en/2.x/api/
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = { "pool_size": 10, "pool_pre_ping": True }
+Principal(app)
 login_manager = LoginManager(app)
 login_manager.init_app(app)
 
@@ -114,6 +121,15 @@ db = SQLAlchemy(model_class=Base)
 db.init_app(app)
 
 # Models / Classes
+
+# Join table
+# https://flask-sqlalchemy.palletsprojects.com/en/2.x/models/
+# https://stackoverflow.com/questions/183042/how-can-i-use-uuids-in-sqlalchemy
+tr = db.Table('tourist_role',
+    db.Column('tourist_id', UUID(as_uuid=True), db.ForeignKey('tourist.id'), primary_key=True),
+    db.Column('role_id', UUID(as_uuid=True), db.ForeignKey('role.id'), primary_key=True)
+)
+
 class Tourist(UserMixin, db.Model):
   id: so.Mapped[uuid.UUID] = so.mapped_column(
     sa.types.Uuid,
@@ -123,6 +139,7 @@ class Tourist(UserMixin, db.Model):
   username: so.Mapped[str] = so.mapped_column(sa.String(64), index=True, unique=True)
   email: so.Mapped[str] = so.mapped_column(sa.String(120), index=True, unique=True)
   password_hash: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
+  roles = db.relationship('Role', secondary=tr, lazy='subquery', backref=db.backref('roles', lazy=True))
 
   def __repr__(self):
     return "[Tourist: username = {}]".format(self.username)
@@ -132,6 +149,15 @@ class Tourist(UserMixin, db.Model):
 
   def check_password(self, password):
     return check_password_hash(self.password_hash, password)
+
+# New class for roles
+class Role(db.Model):
+  id: so.Mapped[uuid.UUID] = so.mapped_column(
+    sa.types.Uuid,
+    primary_key=True,
+    server_default=sa.text("gen_random_uuid()")
+  )
+  name: so.Mapped[str] = so.mapped_column(sa.String(64), index=True, unique=True)
 
 # https://community.plotly.com/t/how-to-tell-if-user-is-mobile-or-desktop-in-backend/47270/3
 def is_mobile():
@@ -187,7 +213,22 @@ with app.app_context():
 
 @login_manager.user_loader
 def load_user(id):
-    return db.session.get(Tourist, id)
+  return db.session.get(Tourist, id)
+
+# Ref. https://pythonhosted.org/Flask-Principal/#user-information-providers
+@identity_loaded.connect_via(app)
+def on_identity_loaded(sender, identity):
+  # Set the identity user object
+  identity.user = current_user
+  # Add the UserNeed to the identity
+  if hasattr(current_user, 'id'):
+    identity.provides.add(UserNeed(current_user.id))
+  # Assuming the User model has a list of roles, update the
+  # identity with the roles that the user provides
+  if hasattr(current_user, 'roles'):
+    for role in current_user.roles:
+      logging.info("{} has role {}".format(current_user.username, role.name))
+      identity.provides.add(RoleNeed(role.name))
 
 # Return a JSON list of the sites where the tourist may be located
 @app.route("/sites", methods = ["GET"])
@@ -302,7 +343,7 @@ def edit_post():
       , amenity=form.amenity.data
       , id=form.id.data
     )
-    rv = run_stmt(eng_write, stmt)
+    run_stmt(eng_write, stmt)
     return render_template("amenity_edit.html", amenity_form=form, url=gen_url(form), is_mobile=is_mobile())
 
 # Handle the HTTP GET from the <a href...> link
@@ -353,6 +394,7 @@ def login():
       flash("Invalid username or password")
       return redirect("/login?" + url_params)
     login_user(user, remember=login_form.remember_me.data)
+    identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
     return redirect("/?" + url_params)
   login_form.lat.data = lat
   login_form.lon.data = lon
