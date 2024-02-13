@@ -18,9 +18,9 @@ import Geohash
 from typing import Optional
 import sqlalchemy as sa
 import sqlalchemy.orm as so
-from sqlalchemy import create_engine, text, event
-from sqlalchemy import Table, MetaData
+from sqlalchemy import create_engine, text, event, Table, MetaData, DDL
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.event import listen
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 import warnings
@@ -158,6 +158,14 @@ class Role(db.Model):
     server_default=sa.text("gen_random_uuid()")
   )
   name: so.Mapped[str] = so.mapped_column(sa.String(64), index=True, unique=True)
+
+# Insert default Role values
+# FIXME: Are these role names ok?
+event.listen(
+  Role.__table__,
+  "after_create",
+  DDL("""INSERT INTO role (name) VALUES ('Grand Tourist'), ('Tourist')""")
+)
 
 # https://community.plotly.com/t/how-to-tell-if-user-is-mobile-or-desktop-in-backend/47270/3
 def is_mobile():
