@@ -158,9 +158,14 @@ class Role(db.Model):
     server_default=sa.text("gen_random_uuid()")
   )
   name: so.Mapped[str] = so.mapped_column(sa.String(64), index=True, unique=True)
+  def __init__(self, name):
+    self.name = name
+  def __eq__(self, other):
+    if isinstance(other, Role):
+      return self.name == other.name
+    return False
 
 # Insert default Role values
-# FIXME: Are these role names ok?
 event.listen(
   Role.__table__,
   "after_create",
@@ -236,6 +241,10 @@ def on_identity_loaded(sender, identity):
   if hasattr(current_user, 'roles'):
     for role in current_user.roles:
       logging.info("{} has role {}".format(current_user.username, role.name))
+      # FIXME: these next couple of lines might be removed
+      req_role = Role("Grand Tourist")
+      if role == req_role:
+        logging.info("{} has required role".format(current_user.username))
       identity.provides.add(RoleNeed(role.name))
 
 # Return a JSON list of the sites where the tourist may be located
