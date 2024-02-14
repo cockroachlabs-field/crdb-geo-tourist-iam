@@ -48,7 +48,7 @@ ALTER TABLE public.osm ADD COLUMN crdb_region crdb_internal_region NOT NULL AS
 
 ALTER TABLE public.osm SET LOCALITY REGIONAL BY ROW;
 
-/* Global */
+/* The other tables will be global */
 CREATE TABLE public.tourist
 (
   id UUID NOT NULL DEFAULT gen_random_uuid(),
@@ -61,7 +61,6 @@ CREATE TABLE public.tourist
 )
 LOCALITY GLOBAL;
 
-/* Global */
 CREATE TABLE public.tourist_locations
 (
   name STRING NULL,
@@ -71,6 +70,27 @@ CREATE TABLE public.tourist_locations
   geohash CHAR(9) NOT NULL
     AS (st_geohash(st_setsrid(st_makepoint(lon, lat), 4326:::INT8), 9:::INT8)) STORED,
   CONSTRAINT "primary" PRIMARY KEY (geohash ASC)
+)
+LOCALITY GLOBAL;
+
+CREATE TABLE public."role"
+(
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  name VARCHAR(64) NOT NULL,
+  CONSTRAINT role_pkey PRIMARY KEY (id ASC),
+  UNIQUE INDEX ix_role_name (name ASC)
+)
+LOCALITY GLOBAL;
+
+INSERT INTO public."role" (name) VALUES ('Tourist'), ('Grand Tourist');
+
+CREATE TABLE public.tourist_role
+(
+  tourist_id UUID NOT NULL,
+  role_id UUID NOT NULL,
+  CONSTRAINT tourist_role_pkey PRIMARY KEY (tourist_id ASC, role_id ASC),
+  CONSTRAINT tourist_role_tourist_id_fkey FOREIGN KEY (tourist_id) REFERENCES public.tourist(id),
+  CONSTRAINT tourist_role_role_id_fkey FOREIGN KEY (role_id) REFERENCES public."role"(id)
 )
 LOCALITY GLOBAL;
 
