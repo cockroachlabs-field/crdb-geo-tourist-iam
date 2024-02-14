@@ -155,13 +155,9 @@ class Tourist(UserMixin, db.Model):
   def check_password(self, password):
     return check_password_hash(self.password_hash, password)
   def has_role(self, req_role):
-    logging.info("role: {}, my roles: {}".format(req_role, self.roles))
-    # Compare the name field only
-    rv = False
-    for role in self.roles:
-      if role.name == req_role:
-        rv = True
-    return rv
+    rr = Role(req_role)
+    logging.info("role: {}, my roles: {}".format(rr, self.roles))
+    return rr in self.roles
 
 # New class for roles
 class Role(db.Model):
