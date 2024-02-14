@@ -139,7 +139,7 @@
     getFeatures(mymap.getCenter(), amenity);
   }
 
-  var mymap = L.map('mapid' , {
+  var mymap = L.map('mapid', {
     contextmenu: true,
       contextmenuWidth: 100,
 	      contextmenuItems: [{
@@ -240,6 +240,7 @@
     return baseUrl + "?lat=" + lat + "&lon=" + lon + "&zoom=" + zoom;
   }
 </script>
+<!-- FIXME: require GRAND_TOURIST permission -->
 {% if current_user.is_authenticated %}
 <script src="/static/geohash.js"></script>
 <script src="/static/geolocate.js"></script>

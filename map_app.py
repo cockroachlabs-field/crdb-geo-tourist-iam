@@ -36,7 +36,11 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, current_user, login_user, login_required, logout_user
 
 # Authorization
-from flask_principal import Principal, Identity, identity_changed, identity_loaded, RoleNeed, UserNeed
+from flask_principal import Principal, Identity, identity_changed, identity_loaded, RoleNeed, UserNeed, Permission
+
+# I like this approach: https://stackoverflow.com/questions/31016505/setting-permissions-in-flask
+ROLE_GRAND_TOURIST = "Grand Tourist"
+ROLE_TOURIST = "Tourist"
 
 db_url = os.getenv("DB_URL")
 if db_url is None:
@@ -104,9 +108,13 @@ app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", os.urandom(24).hex())
 app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 # For next line: https://flask-sqlalchemy.palletsprojects.com/en/2.x/api/
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = { "pool_size": 10, "pool_pre_ping": True }
-Principal(app)
 login_manager = LoginManager(app)
 login_manager.init_app(app)
+
+# Authorization
+principals = Principal(app)
+tourist_perm = Permission(RoleNeed(ROLE_TOURIST))
+grand_tourist_perm = Permission(RoleNeed(ROLE_GRAND_TOURIST))
 
 # Suppress SQLAlchemy warnings
 osm_table = None
@@ -140,15 +148,20 @@ class Tourist(UserMixin, db.Model):
   email: so.Mapped[str] = so.mapped_column(sa.String(120), index=True, unique=True)
   password_hash: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
   roles = db.relationship('Role', secondary=tr, lazy='subquery', backref=db.backref('roles', lazy=True))
-
   def __repr__(self):
-    return "[Tourist: username = {}]".format(self.username)
-
+    return "[Tourist: {}, roles: {}]".format(self.username, self.roles)
   def set_password(self, password):
     self.password_hash = generate_password_hash(password)
-
   def check_password(self, password):
     return check_password_hash(self.password_hash, password)
+  def has_role(self, req_role):
+    logging.info("role: {}, my roles: {}".format(req_role, self.roles))
+    # Compare the name field only
+    rv = False
+    for role in self.roles:
+      if role.name == req_role:
+        rv = True
+    return rv
 
 # New class for roles
 class Role(db.Model):
@@ -164,12 +177,14 @@ class Role(db.Model):
     if isinstance(other, Role):
       return self.name == other.name
     return False
+  def __repr__(self):
+    return self.name
 
 # Insert default Role values
 event.listen(
   Role.__table__,
   "after_create",
-  DDL("""INSERT INTO role (name) VALUES ('Grand Tourist'), ('Tourist')""")
+  DDL("INSERT INTO role (name) VALUES ('{}'), ('{}')".format(ROLE_GRAND_TOURIST, ROLE_TOURIST))
 )
 
 # https://community.plotly.com/t/how-to-tell-if-user-is-mobile-or-desktop-in-backend/47270/3
@@ -242,7 +257,7 @@ def on_identity_loaded(sender, identity):
     for role in current_user.roles:
       logging.info("{} has role {}".format(current_user.username, role.name))
       # FIXME: these next couple of lines might be removed
-      req_role = Role("Grand Tourist")
+      req_role = Role(ROLE_GRAND_TOURIST)
       if role == req_role:
         logging.info("{} has required role".format(current_user.username))
       identity.provides.add(RoleNeed(role.name))
@@ -317,7 +332,7 @@ def features():
     d = {}
     d["zoom"] = zoom
     d["name"] = name
-    if current_user.is_authenticated: # Logged in => editable
+    if current_user.is_authenticated and current_user.has_role(ROLE_GRAND_TOURIST):
       d["name"] = '<a href="/amenity/edit/{}/{}/{}">{}</a>'.format(geohash4, amenity, id, name)
     d["amenity"] = amenity
     d["dist_m"] = str(dist_m)
@@ -341,6 +356,7 @@ def gen_url(form):
 
 # Handle the case when the user submits the form
 @app.route("/amenity/edit", methods=["POST"])
+@grand_tourist_perm.require()
 def edit_post():
   if not current_user.is_authenticated:
     return redirect(url_for("login"))
@@ -367,6 +383,7 @@ def edit_post():
 # Pre-populate the form based on values in the HTTP request:
 # https://stackoverflow.com/questions/35892144/pre-populate-an-edit-form-with-wtforms-and-flask
 @app.route("/amenity/edit/<geohash4>/<amenity>/<id>", methods=["GET"])
+@grand_tourist_perm.require()
 def edit_get(geohash4, amenity, id):
   if not current_user.is_authenticated:
     return redirect(url_for("login"))
