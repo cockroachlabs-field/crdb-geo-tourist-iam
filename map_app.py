@@ -38,9 +38,10 @@ from flask_login import LoginManager, UserMixin, current_user, login_user, login
 # Authorization
 from flask_principal import Principal, Identity, identity_changed, identity_loaded, RoleNeed, UserNeed, Permission
 
-# I like this approach: https://stackoverflow.com/questions/31016505/setting-permissions-in-flask
-ROLE_GRAND_TOURIST = "Grand Tourist"
-ROLE_TOURIST = "Tourist"
+all_roles = {
+  "ROLE_GRAND_TOURIST": "Grand Tourist",
+  "ROLE_TOURIST": "Tourist"
+}
 
 db_url = os.getenv("DB_URL")
 if db_url is None:
@@ -113,8 +114,8 @@ login_manager.init_app(app)
 
 # Authorization
 principals = Principal(app)
-tourist_perm = Permission(RoleNeed(ROLE_TOURIST))
-grand_tourist_perm = Permission(RoleNeed(ROLE_GRAND_TOURIST))
+tourist_perm = Permission(RoleNeed(all_roles["ROLE_TOURIST"]))
+grand_tourist_perm = Permission(RoleNeed(all_roles["ROLE_GRAND_TOURIST"]))
 
 # Suppress SQLAlchemy warnings
 osm_table = None
@@ -180,7 +181,10 @@ class Role(db.Model):
 event.listen(
   Role.__table__,
   "after_create",
-  DDL("INSERT INTO role (name) VALUES ('{}'), ('{}')".format(ROLE_GRAND_TOURIST, ROLE_TOURIST))
+  DDL(
+    "INSERT INTO role (name) VALUES ('{}'), ('{}')".format(
+    all_roles["ROLE_GRAND_TOURIST"], all_roles["ROLE_TOURIST"])
+  )
 )
 
 # https://community.plotly.com/t/how-to-tell-if-user-is-mobile-or-desktop-in-backend/47270/3
@@ -252,10 +256,6 @@ def on_identity_loaded(sender, identity):
   if hasattr(current_user, 'roles'):
     for role in current_user.roles:
       logging.info("{} has role {}".format(current_user.username, role.name))
-      # FIXME: these next couple of lines might be removed
-      req_role = Role(ROLE_GRAND_TOURIST)
-      if role == req_role:
-        logging.info("{} has required role".format(current_user.username))
       identity.provides.add(RoleNeed(role.name))
 
 # Return a JSON list of the sites where the tourist may be located
@@ -328,7 +328,7 @@ def features():
     d = {}
     d["zoom"] = zoom
     d["name"] = name
-    if current_user.is_authenticated and current_user.has_role(ROLE_GRAND_TOURIST):
+    if current_user.is_authenticated and current_user.has_role(all_roles["ROLE_GRAND_TOURIST"]):
       d["name"] = '<a href="/amenity/edit/{}/{}/{}">{}</a>'.format(geohash4, amenity, id, name)
     d["amenity"] = amenity
     d["dist_m"] = str(dist_m)
@@ -343,7 +343,7 @@ def features():
 @app.route("/")
 def index():
   logging.info("current_user: {}".format(current_user))
-  return render_template("index.html")
+  return render_template("index.html", **all_roles)
 
 # Generate the URL to get back to the map when using the amenity edit view
 def gen_url(form):
