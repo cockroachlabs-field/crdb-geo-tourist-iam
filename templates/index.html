@@ -240,8 +240,8 @@
     return baseUrl + "?lat=" + lat + "&lon=" + lon + "&zoom=" + zoom;
   }
 </script>
-<!-- FIXME: require GRAND_TOURIST permission -->
-{% if current_user.is_authenticated %}
+<!-- FIXME: pass 'Tourist' in via app -->
+{% if current_user.is_authenticated and current_user.has_role('Tourist') %}
 <script src="/static/geohash.js"></script>
 <script src="/static/geolocate.js"></script>
 {% endif %}

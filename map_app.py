@@ -342,7 +342,7 @@ def features():
 # Routes
 @app.route("/")
 def index():
-  logging.warning("current_user: {}".format(current_user))
+  logging.info("current_user: {}".format(current_user))
   return render_template("index.html")
 
 # Generate the URL to get back to the map when using the amenity edit view
