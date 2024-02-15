@@ -10,7 +10,7 @@
 
 import logging
 import re, os, sys, time, random, json, uuid
-from psycopg2.errors import SerializationFailure
+from psycopg2.errors import SerializationFailure, UniqueViolation
 import psycopg2
 import Geohash
 
@@ -245,7 +245,11 @@ with app.app_context():
   for role_name in all_roles.values():
     role = Role(role_name)
     db.session.add(role)
-  db.session.commit()
+    try:
+      db.session.commit()
+    except (UniqueViolation, sa.exc.IntegrityError) as e:
+      logging.warning("Error: %s", e)
+      db.session.rollback()
 
 @login_manager.user_loader
 def load_user(id):
