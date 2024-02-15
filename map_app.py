@@ -24,11 +24,12 @@ from sqlalchemy.event import listen
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 import warnings
+from typing import List
 
 # The Flask and related imports
 from flask import Flask, request, Response, render_template, flash, redirect, url_for, current_app
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField, SubmitField, HiddenField
+from wtforms import StringField, PasswordField, BooleanField, SubmitField, HiddenField, SelectMultipleField
 from wtforms.validators import DataRequired, ValidationError, Email, EqualTo
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -55,6 +56,9 @@ logging.basicConfig(
   , datefmt="%m/%d/%Y %I:%M:%S %p"
 )
 print("Log level: {} (export LOG_LEVEL=[DEBUG|INFO|WARN|ERROR] to change this)".format(log_level))
+
+# Debug SQL
+#logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
 db_url = re.sub(r"^postgres(ql)?", "cockroachdb", db_url)
 # For using follower reads:
@@ -134,33 +138,13 @@ db.init_app(app)
 # Join table
 # https://flask-sqlalchemy.palletsprojects.com/en/2.x/models/
 # https://stackoverflow.com/questions/183042/how-can-i-use-uuids-in-sqlalchemy
-tr = db.Table('tourist_role',
-    db.Column('tourist_id', UUID(as_uuid=True), db.ForeignKey('tourist.id'), primary_key=True),
-    db.Column('role_id', UUID(as_uuid=True), db.ForeignKey('role.id'), primary_key=True)
+tr = Table(
+    "tourist_role",
+    Base.metadata,
+    sa.Column("role_id", sa.ForeignKey("role.id"), primary_key=True),
+    sa.Column("tourist_id", sa.ForeignKey("tourist.id"), primary_key=True)
 )
 
-class Tourist(UserMixin, db.Model):
-  id: so.Mapped[uuid.UUID] = so.mapped_column(
-    sa.types.Uuid,
-    primary_key=True,
-    server_default=sa.text("gen_random_uuid()")
-  )
-  username: so.Mapped[str] = so.mapped_column(sa.String(64), index=True, unique=True)
-  email: so.Mapped[str] = so.mapped_column(sa.String(120), index=True, unique=True)
-  password_hash: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
-  roles = db.relationship('Role', secondary=tr, lazy='subquery', backref=db.backref('roles', lazy=True))
-  def __repr__(self):
-    return "[Tourist: {}, roles: {}]".format(self.username, self.roles)
-  def set_password(self, password):
-    self.password_hash = generate_password_hash(password)
-  def check_password(self, password):
-    return check_password_hash(self.password_hash, password)
-  def has_role(self, req_role):
-    rr = Role(req_role)
-    logging.info("role: {}, my roles: {}".format(rr, self.roles))
-    return rr in self.roles
-
-# New class for roles
 class Role(db.Model):
   id: so.Mapped[uuid.UUID] = so.mapped_column(
     sa.types.Uuid,
@@ -177,7 +161,28 @@ class Role(db.Model):
   def __repr__(self):
     return self.name
 
-# Insert default Role values
+class Tourist(UserMixin, db.Model):
+  id: so.Mapped[uuid.UUID] = so.mapped_column(
+    sa.types.Uuid,
+    primary_key=True,
+    server_default=sa.text("gen_random_uuid()")
+  )
+  username: so.Mapped[str] = so.mapped_column(sa.String(64), index=True, unique=True)
+  email: so.Mapped[str] = so.mapped_column(sa.String(120), index=True, unique=True)
+  password_hash: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
+  roles: so.Mapped[List[Role]] = so.relationship(secondary=tr)
+  def __repr__(self):
+    return "[Tourist: {}, roles: {}]".format(self.username, self.roles)
+  def set_password(self, password):
+    self.password_hash = generate_password_hash(password)
+  def check_password(self, password):
+    return check_password_hash(self.password_hash, password)
+  def has_role(self, req_role):
+    rr = Role(req_role)
+    logging.info("role: {}, my roles: {}".format(rr, self.roles))
+    return rr in self.roles
+
+# Insert default Role values when table is created
 event.listen(
   Role.__table__,
   "after_create",
@@ -208,16 +213,23 @@ class SignUpForm(LatLonForm):
   password = PasswordField("Password", validators=[DataRequired()])
   password2 = PasswordField("Repeat Password", validators=[DataRequired(), EqualTo("password")])
   submit = SubmitField("Sign Up")
-
   def validate_username(self, username):
     user = db.session.scalar(sa.select(Tourist).where(Tourist.username == username.data))
     if user is not None:
       raise ValidationError("Please use a different username.")
-
   def validate_email(self, email):
     user = db.session.scalar(sa.select(Tourist).where(Tourist.email == email.data))
     if user is not None:
       raise ValidationError("Please use a different email address.")
+
+# FIXME: finish this one
+class EditUserForm(LatLonForm):
+  username = StringField("Username", validators=[DataRequired()])
+  email = StringField("Email", validators=[DataRequired(), Email()])
+  roles = SelectMultipleField("Roles", choices=all_roles.values())
+  password = PasswordField("Password", validators=[DataRequired()])
+  password2 = PasswordField("Repeat Password", validators=[DataRequired(), EqualTo("password")])
+  submit = SubmitField("Sign Up")
 
 class LoginForm(LatLonForm):
   username = StringField("Username", validators=[DataRequired()])
@@ -448,6 +460,8 @@ def signup():
   if signup_form.validate_on_submit():
     user = Tourist(username=signup_form.username.data, email=signup_form.email.data)
     user.set_password(signup_form.password.data)
+    default_role = db.session.scalar(sa.select(Role).where(Role.name == all_roles["ROLE_TOURIST"]))
+    user.roles = [default_role]
     db.session.add(user)
     db.session.commit()
     flash("Congratulations, you are now a registered user!")
@@ -463,4 +477,5 @@ if __name__ == "__main__":
   serve(app, host="0.0.0.0", port=port, threads=10)
   # Shut down the DB connection when app quits
   eng_read.dispose()
+  eng_write.dispose()
 
