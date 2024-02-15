@@ -40,6 +40,7 @@ from flask_login import LoginManager, UserMixin, current_user, login_user, login
 from flask_principal import Principal, Identity, identity_changed, identity_loaded, RoleNeed, UserNeed, Permission
 
 all_roles = {
+  "ROLE_WAYFINDER": "Wayfinder",
   "ROLE_GRAND_TOURIST": "Grand Tourist",
   "ROLE_TOURIST": "Tourist"
 }
@@ -141,8 +142,8 @@ db.init_app(app)
 tr = Table(
     "tourist_role",
     Base.metadata,
-    sa.Column("role_id", sa.ForeignKey("role.id"), primary_key=True),
-    sa.Column("tourist_id", sa.ForeignKey("tourist.id"), primary_key=True)
+    sa.Column("tourist_id", sa.ForeignKey("tourist.id"), primary_key=True),
+    sa.Column("role_id", sa.ForeignKey("role.id"), primary_key=True)
 )
 
 class Role(db.Model):
@@ -182,16 +183,6 @@ class Tourist(UserMixin, db.Model):
     logging.info("role: {}, my roles: {}".format(rr, self.roles))
     return rr in self.roles
 
-# Insert default Role values when table is created
-event.listen(
-  Role.__table__,
-  "after_create",
-  DDL(
-    "INSERT INTO role (name) VALUES ('{}'), ('{}')".format(
-    all_roles["ROLE_GRAND_TOURIST"], all_roles["ROLE_TOURIST"])
-  )
-)
-
 # https://community.plotly.com/t/how-to-tell-if-user-is-mobile-or-desktop-in-backend/47270/3
 def is_mobile():
   user_agent = request.headers.get("User-Agent")
@@ -223,13 +214,13 @@ class SignUpForm(LatLonForm):
       raise ValidationError("Please use a different email address.")
 
 # FIXME: finish this one
-class EditUserForm(LatLonForm):
+class TouristForm(LatLonForm):
   username = StringField("Username", validators=[DataRequired()])
   email = StringField("Email", validators=[DataRequired(), Email()])
   roles = SelectMultipleField("Roles", choices=all_roles.values())
   password = PasswordField("Password", validators=[DataRequired()])
   password2 = PasswordField("Repeat Password", validators=[DataRequired(), EqualTo("password")])
-  submit = SubmitField("Sign Up")
+  submit = SubmitField("Save Changes")
 
 class LoginForm(LatLonForm):
   username = StringField("Username", validators=[DataRequired()])
@@ -250,6 +241,11 @@ class AmenityForm(FlaskForm):
 # Create tables based on objects in models.py
 with app.app_context():
   db.create_all()
+  # Insert default Role values after the table is created
+  for role_name in all_roles.values():
+    role = Role(role_name)
+    db.session.add(role)
+  db.session.commit()
 
 @login_manager.user_loader
 def load_user(id):
@@ -451,6 +447,30 @@ login_manager.login_view = "login"
 def logout():
   logout_user()
   return redirect(url_for("index"))
+
+# FIXME: pre-populate this if it is a GET (see example within this file)
+# For an UPDATE, just alter the fields with new values and call commit()
+# https://stackoverflow.com/questions/63066336/sqlalchemy-how-do-i-update-only-certain-fields-of-my-record
+"""
+user.verified = True
+db.session.commit()
+"""
+@app.route("/tourist/edit", methods=["GET", "POST"])
+@login_required
+def tourist_edit():
+  if not current_user.is_authenticated:
+    flash("Please log in first.")
+    return redirect(url_for("login"))
+  edit_form = TouristForm()
+  if edit_form.validate_on_submit():
+    user = db.session.scalar(sa.select(Tourist).where(Tourist.username == edit_form.username.data))
+    user.set_password(signup_form.password.data)
+    user.roles = edit_form.roles.data
+    db.session.add(user)
+    db.session.commit()
+    flash("Your details have been updated.")
+    return redirect(url_for("/"))
+  return render_template("tourist_edit.html", edit_form=edit_form)
 
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
