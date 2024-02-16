@@ -121,6 +121,7 @@ login_manager.init_app(app)
 principals = Principal(app)
 tourist_perm = Permission(RoleNeed(all_roles["ROLE_TOURIST"]))
 grand_tourist_perm = Permission(RoleNeed(all_roles["ROLE_GRAND_TOURIST"]))
+wayfinder_perm = Permission(RoleNeed(all_roles["ROLE_WAYFINDER"]))
 
 # Suppress SQLAlchemy warnings
 osm_table = None
@@ -173,7 +174,7 @@ class Tourist(UserMixin, db.Model):
   password_hash: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
   roles: so.Mapped[List[Role]] = so.relationship(secondary=tr)
   def __repr__(self):
-    return "[Tourist: {}, roles: {}]".format(self.username, self.roles)
+    return "[Tourist: {}, id: {}, roles: {}]".format(self.username, self.id, self.roles)
   def set_password(self, password):
     self.password_hash = generate_password_hash(password)
   def check_password(self, password):
@@ -182,6 +183,25 @@ class Tourist(UserMixin, db.Model):
     rr = Role(req_role)
     logging.info("role: {}, my roles: {}".format(rr, self.roles))
     return rr in self.roles
+
+class WayPoint(db.Model):
+  tourist_id: so.Mapped[uuid.UUID] = so.mapped_column(sa.types.Uuid, sa.ForeignKey("tourist.id"), primary_key=True)
+  ts: so.Mapped[sa.types.DateTime] = so.mapped_column(
+    sa.types.DateTime, primary_key=True, server_default=sa.text("now()"))
+  lat: so.Mapped[sa.types.Float] = so.mapped_column(sa.types.Float, nullable=False)
+  lon : so.Mapped[sa.types.Float] = so.mapped_column(sa.types.Float, nullable=False)
+  """
+  TODO: if GEOGRAPHY column is required, see
+    https://geoalchemy-2.readthedocs.io/en/0.14.4/types.html#geoalchemy2.types.Geography
+    pt: Column("perimeter", Integer, Computed("(st_makepoint(lon, lat)::GEOGRAPHY)"))
+    Column(Geography(geometry_type='POINT', srid=4326))
+  """
+  def __repr__(self):
+    return "[WayPoint: ({}, {}, {})]".format(self.lat, self.lon, str(self.ts))
+  def __init__(self, tourist, lat, lon):
+    self.tourist_id = tourist.id
+    self.lat = lat
+    self.lon = lon
 
 # https://community.plotly.com/t/how-to-tell-if-user-is-mobile-or-desktop-in-backend/47270/3
 def is_mobile():
@@ -294,6 +314,20 @@ def features():
   obj = request.get_json(force=True)
   lat = float(obj["lat"])
   lon = float(obj["lon"])
+  # Enables:
+  #  - Plot the user's route:
+  """
+     WITH q1 AS
+     (
+      SELECT ST_COLLECT(ST_MAKEPOINT(lon, lat)::GEOMETRY) pts FROM way_point
+     )
+     SELECT ST_ASGEOJSON(pts) FROM q1;
+  """
+  #  - Locate other users within the same region
+  if current_user.is_authenticated and current_user.has_role(all_roles["ROLE_WAYFINDER"]):
+    wp = WayPoint(current_user, lat, lon)
+    db.session.add(wp)
+    db.session.commit()
   zoom = obj["zoom"]
   amenity = obj["amenity"]
   geohash = Geohash.encode(lat, lon)
