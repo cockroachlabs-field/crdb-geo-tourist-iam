@@ -94,3 +94,14 @@ CREATE TABLE public.tourist_role
 )
 LOCALITY GLOBAL;
 
+CREATE TABLE public.way_point
+(
+  tourist_id UUID NOT NULL,
+  ts TIMESTAMP NOT NULL DEFAULT now():::TIMESTAMP,
+  lat FLOAT8 NOT NULL,
+  lon FLOAT8 NOT NULL,
+  CONSTRAINT way_point_pkey PRIMARY KEY (tourist_id ASC, ts ASC),
+  CONSTRAINT way_point_tourist_id_fkey FOREIGN KEY (tourist_id) REFERENCES public.tourist(id)
+)
+LOCALITY REGIONAL BY ROW;
+
