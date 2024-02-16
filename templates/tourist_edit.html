@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% import "bootstrap_wtf.html" as wtf %}
+{% block content %}
+
+<div class="w-25 p-3">
+{{ wtf.quick_form(edit_form, action="/tourist/edit") }}
+</div>
+
+{% endblock %}
+
