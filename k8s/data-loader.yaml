@@ -5,14 +5,24 @@ metadata:
 spec:
   containers:
   - name: crdb-geo-loader
-    image: mgoddard/crdb-geo-tourist:1.16
+    image: mgoddard/iam-geo-tourist:1.2
     imagePullPolicy: Always
     env:
       - name: DB_URL
         value: "postgres://tourist:tourist@cockroachdb-public:26257/defaultdb"
-      - name: DATA_URL
+      - name: DATA_1
         value: "https://storage.googleapis.com/crl-goddard-gis/osm_eu_2022.09.01.txt.gz"
+      - name: DATA_2
+        value: "https://storage.googleapis.com/crl-goddard-gis/osm_austin_with_ratings_20240126.txt.gz"
+      - name: DATA_3
+        value: "https://storage.googleapis.com/crl-goddard-gis/osm_cville_with_ratings_20240208.txt.gz"
+      - name: DATA_4
+        value: "https://storage.googleapis.com/crl-goddard-gis/osm_dc_with_ratings_20240208.txt.gz"
+      - name: DATA_5
+        value: "https://storage.googleapis.com/crl-goddard-gis/osm_new_york_with_ratings_20240208.txt.gz"
+      - name: DATA_6
+        value: "https://storage.googleapis.com/crl-goddard-gis/osm_so_cal_with_ratings_2024.02.09.txt.gz"
     command: ["/bin/bash", "-c"]
-    args: ["curl -s -k ${DATA_URL} | gunzip - | ./load_osm_stdin.py"]
+    args: ["curl -s -k ${DATA_1} ${DATA_2} ${DATA_3} ${DATA_4} ${DATA_5} ${DATA_6} | gunzip - | ./load_osm_stdin.py"]
   restartPolicy: Never
 
