@@ -8,6 +8,7 @@ data set.  The notes here are current as of today (8 February 2024).
 
 ## Prepared Data
 
+* [Europe](https://storage.googleapis.com/crl-goddard-gis/osm_eu_2022.09.01.txt.gz)
 * [Austin](https://storage.googleapis.com/crl-goddard-gis/osm_austin_with_ratings_20240126.txt.gz)
 * [Charlottesville](https://storage.googleapis.com/crl-goddard-gis/osm_cville_with_ratings_20240208.txt.gz)
 * [Washington, DC](https://storage.googleapis.com/crl-goddard-gis/osm_dc_with_ratings_20240208.txt.gz)
