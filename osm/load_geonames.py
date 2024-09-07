@@ -14,7 +14,7 @@ import sys, os
 import re
 import csv
 import logging
-import Geohash
+import pygeohash as pgh
 from bloom_filter2 import BloomFilter
 
 """
@@ -23,6 +23,7 @@ from bloom_filter2 import BloomFilter
  $ pip3 install sqlalchemy
  $ pip3 install sqlalchemy-cockroachdb
  $ pip3 install bloom-filter2
+ $ pip3 install pygeohash
 """
 
 logging.basicConfig(level=logging.INFO, format="[%(asctime)s] %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p")
@@ -107,7 +108,8 @@ for row in tsv:
       row[i] = None
 
   try:
-    geohash = Geohash.encode(float(row[7]), float(row[6]))
+    # 7 => lat, 6 => lon
+    geohash = pgh.encode(float(row[7]), float(row[6]))
   except Exception as e:
     print(e)
     continue
