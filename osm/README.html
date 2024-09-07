@@ -1,0 +1,99 @@
+<h1 id="notes-on-openstreetmap-osm-data-sources-and-preparation">Notes
+on OpenStreetMap (OSM) data sources and preparation</h1>
+<h2 id="overview">Overview</h2>
+<p>For an overview of the data in the app, see the app’s <a
+href="../README.md">README</a>. This section deals with specifics of
+adding data for an area not already covered in the app’s default data
+set. The notes here are current as of today (8 February 2024).</p>
+<h2 id="prepared-data">Prepared Data</h2>
+<ul>
+<li><a
+href="https://storage.googleapis.com/crl-goddard-gis/osm_eu_2022.09.01.txt.gz">Europe</a></li>
+<li><a
+href="https://storage.googleapis.com/crl-goddard-gis/osm_austin_with_ratings_20240126.txt.gz">Austin</a></li>
+<li><a
+href="https://storage.googleapis.com/crl-goddard-gis/osm_cville_with_ratings_20240208.txt.gz">Charlottesville</a></li>
+<li><a
+href="https://storage.googleapis.com/crl-goddard-gis/osm_dc_with_ratings_20240208.txt.gz">Washington,
+DC</a></li>
+<li><a
+href="https://storage.googleapis.com/crl-goddard-gis/osm_new_york_with_ratings_20240208.txt.gz">New
+York</a></li>
+<li><a
+href="https://storage.googleapis.com/crl-goddard-gis/osm_so_cal_with_ratings_2024.02.09.txt.gz">Southern
+California</a></li>
+</ul>
+<h2 id="process">Process</h2>
+<ol type="1">
+<li>Navigate to <a href="https://app.protomaps.com/">this site</a> and
+use the UI to extract data for the region you want, or do this:
+<ul>
+<li><a href="https://download.geofabrik.de/">This site</a> has some
+regional data extracts, so I’ll use <a
+href="https://download.geofabrik.de/north-america-latest.osm.pbf">the
+one for North America</a> here.</li>
+</ul></li>
+<li>Next, we convert the PBF file into the XML format OSM uses. Why XML?
+This is the format I initally used when building the data pipeline, so
+that code is based on XML. Here we go:
+<ul>
+<li>Download <em>osmosis</em>, the converter we’ll use, from <a
+href="https://github.com/openstreetmap/osmosis/releases">here</a></li>
+<li>This is a Java app, so you’ll need a JVM installed</li>
+<li>Unzip that file in your current working directory (where the PBF
+file is)</li>
+<li><code>time ./osmosis-0.49.2/bin/osmosis --read-pbf-0.6 file=./north-america-latest.osm.pbf --bounding-box top=38.1400953181691 left=-78.56547596094232 bottom=37.982301102053285 right=-78.3540781573794 --write-xml file=- | gzip - &gt; osm_cville.xml.gz</code></li>
+<li>That took <code>real    5m29.208s</code> to produce the XML file,
+which isn’t terrible</li>
+</ul></li>
+<li>The data format continues to be a bit odd. The next step is to take
+the XML file from above which spans &gt; 1 row per entry and reformat it
+to a CSV-like format, where the delimiter is the <code>&lt;</code>
+character (logic here: since XML can’t contain that char, it’s not going
+to be present in the data):
+<code>time gzcat ./osm_cville.xml.gz | ../crdb-geo-tourist-iam/osm/extract_points_from_osm_xml.pl | gzip - &gt; osm_cville_02.08.24.txt.gz</code>
+<ul>
+<li>The resulting file has rows with this format:
+<code>11198305607&lt;2023-09-17T19:14:15Z&lt;0&lt;38.0350278&lt;-78.486494&lt;Random Row Brewing&lt;addr:city=Charlottesville|addr:housenumber=608|addr:postcode=22903|addr:state=VA|addr:street=Preston Avenue|addr:unit=A|amenity=pub|microbrewery=yes|website=https://randomrow.com|dqb|dqb0|dqb0m|dqb0mu&lt;dqb0mupfh5h66</code></li>
+</ul></li>
+<li>In a later step, we’ll get some ratings to add to the data, one per
+row. This involves doing a web search, so we’ll need to provide more
+context than what we have now, for better accuracy. To do that, we’ll
+augment the data with the city name, and the data to use for that is
+available <a href="https://osmnames.org/download/">here</a>. Once that
+file is downloaded as <code>planet-latest_geonames.tsv.gz</code>,
+proceed as follows:
+<ul>
+<li>Use the DDL in
+<code>../../crdb-geo-tourist-iam/osm/osm_names.sql</code> to create the
+<code>osm_names</code> table</li>
+<li>Run the following to load the data:
+<code>time gzcat ./planet-latest_geonames.tsv.gz | ../crdb-geo-tourist-iam/osm/load_geonames.py</code></li>
+<li>That takes a while on a MacBook (<code>55m12.335s</code>), so doing
+an EXPORT of this would be a good idea.</li>
+<li>Result: 9444352 rows in the table</li>
+<li>Next, we use this table to add the city name to each of the rows in
+the CSV that correspond to a bar, pub, cafe, or restaurant:
+<code>time gzcat osm_cville_02.08.24.txt.gz | egrep 'amenity=(bar|pub|cafe|restaurant)' | ../crdb-geo-tourist-iam/osm/add_city.pl | gzip - &gt; osm_cville_with_city_02.08.24.txt.gz</code></li>
+<li>That took <code>real    0m35.512s</code></li>
+</ul></li>
+<li>Final data prep step: add the ratings for the amenities. The most
+reliable source of data on this that I could find was the Brave search
+API, which is what I’ll document here.
+<ul>
+<li>Sign up for an account and get an API key, from <a
+href="https://brave.com/search/api/">here</a></li>
+<li>Run <code>export BRAVE_API_KEY=use_your_key_here</code></li>
+<li>Run
+<code>time gzcat osm_cville_with_city_02.08.24.txt.gz | ../crdb-geo-tourist-iam/osm/add_ratings_to_data_file.py | gzip - &gt; osm_cville_with_ratings_02.08.24.txt.gz</code></li>
+<li>That took <code>real    3m23.768s</code> and also produces a
+newline-delimited JSON file, <code>brave_api.ndjson</code> containing
+the Brave search API results.</li>
+</ul></li>
+<li>Finally – we get to load the data into the <code>osm</code> table:
+<ul>
+<li>Run
+<code>time gzcat osm_cville_with_ratings_02.08.24.txt.gz | ../crdb-geo-tourist-iam/load_osm_stdin.py</code></li>
+<li>The data should be in the <code>osm</code> table!</li>
+</ul></li>
+</ol>

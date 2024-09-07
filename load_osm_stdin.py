@@ -59,6 +59,7 @@ sites.append({"name": "Dupont Circle", "lat": 38.9100535, "lon": -77.0426321})
 sites.append({"name": "Laguna Beach", "lat": 33.5418456, "lon": -117.7838984})
 sites.append({"name": "Westwood", "lat": 34.0620851, "lon": -118.4428635})
 sites.append({"name": "Pasadena", "lat": 34.1390904, "lon": -118.1277370})
+sites.append({"name": "Orlando", "lat": 28.5458843, "lon": -81.3760205})
 
 max_retries = int(os.getenv("MAX_RETRIES", "3"))
 logging.info("MAX_RETRIES: {}".format(max_retries))

@@ -20,28 +20,53 @@ N_COLS = 8
 
 import re, sys, os, time, json, random
 import urllib.parse
-import fileinput
+#import fileinput
 import datetime
 import html
 import requests
+import gzip
 
 addr_pat = re.compile(r"^addr:(?:city|postcode|street)=(.+)$")
-rate_pat = re.compile(r'"ratingValue": +(\d\.\d)')
+#rate_pat = re.compile(r'"ratingValue": +(\d\.\d)') # No longer valid 2024-09-07
+rate_pat = re.compile(r"rated +(\d+(\.\d+)?) +of +5")
 
+n_args = len(sys.argv)
+if n_args != 2 and n_args != 4:
+  print("Usage: {} input.csv.gz [--json api_output.json]".format(sys.argv[0]))
+  sys.exit(1)
+
+csv_gz = sys.argv[1]
+
+qr = {} # Query string to rating
+if len(sys.argv) == 4 and "--json" == sys.argv[2]:
+  with open(sys.argv[3]) as f:
+    for line in f:
+      line = line.strip()
+      obj = json.loads(line)
+      q = obj["query"]["original"]
+      qr[q] = None
+      mat = rate_pat.search(line)
+      if mat is not None:
+        rating = mat.group(1)
+        qr[q] = rating
+  #print(json.dumps(qr))
+  #sys.exit(0)
+
+out = None
 api_key = os.getenv("BRAVE_API_KEY")
-if api_key is None:
+if qr is None and api_key is None:
   print("Environment variable BRAVE_API_KEY must be set. Quitting.")
   sys.exit(1)
 
-# Save all the JSON data here for future use (it costs a bit of $).
-out = open("brave_api.ndjson", 'a')
+if qr is None:
+  # Save all the JSON data here for future use (it costs a bit of $).
+  out = open("brave_api.ndjson", 'a')
 
 def eprint(*args, **kwargs):
   print(*args, file=sys.stderr, **kwargs)
 
 # Given an array of query terms, return the FLOAT value of its rating (1 - 5).
-def get_rating(query_terms):
-  q = ' '.join(query_terms)
+def get_rating_api(q):
   rv = None
   q = urllib.parse.quote_plus(q)
   hdrs = {
@@ -65,7 +90,8 @@ def get_rating(query_terms):
     eprint("URL: {} returned None".format(url))
     return rv
   obj = r.json()
-  out.write(json.dumps(obj) + '\n')
+  if out is not None:
+    out.write(json.dumps(obj) + '\n')
   """
   The "ratingValue" field occurs at various places:
     $.web.results.0.location.rating.ratingValue
@@ -78,31 +104,39 @@ def get_rating(query_terms):
     rv = mat.group(1)
   return rv
 
-for line in fileinput.input():
-  line = line.rstrip()
-  a = line.split('<')
-  if N_COLS != len(a):
-    continue
-  (id, dt, uid, lat, lon, name, kvagg, geohash) = a
-  terms = [name]
-  # Only need name and kvagg
-  for x in kvagg.split('|'):
-    if len(x) == 0:
-      continue;
-    x = html.unescape(x)
-    x = re.sub(r"['\",{}]", "", x)
-    m = addr_pat.match(x)
-    if m is not None:
-      terms.append(m.group(1))
-  rating = get_rating(terms)
-  if rating is not None:
-    a.append(rating)
-    a.append(datetime.datetime.now().isoformat())
-  else:
-    a.append("")
-    a.append("")
-  print('<'.join(a))
-  time.sleep(T_SLEEP_MS/1000)
-
-out.close()
+#for line in fileinput.input():
+with gzip.open(csv_gz, "rt") as f:
+  for line in f:
+    line = line.rstrip()
+    a = line.split('<')
+    if N_COLS != len(a):
+      continue
+    (id, dt, uid, lat, lon, name, kvagg, geohash) = a
+    terms = [name]
+    # Only need name and kvagg
+    for x in kvagg.split('|'):
+      if len(x) == 0:
+        continue;
+      x = html.unescape(x)
+      x = re.sub(r"['\",{}]", "", x)
+      m = addr_pat.match(x)
+      if m is not None:
+        terms.append(m.group(1))
+    q = ' '.join(terms)
+    rating = None
+    if qr:
+      rating = qr[q]
+    else:
+      rating = get_rating_api(q)
+    if rating is not None:
+      a.append(rating)
+      a.append(datetime.datetime.now().isoformat())
+    else:
+      a.append("")
+      a.append("")
+    print('<'.join(a))
+    if not qr:
+      time.sleep(T_SLEEP_MS/1000)
+if out is not None:
+  out.close()
 
